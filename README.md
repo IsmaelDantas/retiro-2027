@@ -29,6 +29,15 @@ Substituir listas e planilhas descentralizadas por uma interface simples, intuit
 - Pesquisa e filtros por status
 - Exportação de dados em CSV
 
+## 🌿 Estrutura de Branches & Fluxo de Trabalho
+
+O repositório adota um modelo de versionamento baseado no Gitflow Simplificado:
+
+- **`main`**: Branch de produção. Contém o código estável, testado e sincronizado com o ambiente de deploy em produção na [Vercel](https://retiro-2027-seven.vercel.app/).
+- **`develop`**: Branch de integração contínua e desenvolvimento ativo, utilizada para homologação de novas features antes do lançamento oficial.
+
+---
+
 ## 🛠 Stack
 
 | Tecnologia | Versão | Propósito |
