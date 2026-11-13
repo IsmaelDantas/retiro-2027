@@ -9,7 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Tabela de Pagamentos (Blusas, Inscrições e Outros)
 -- =============================================
 CREATE TABLE IF NOT EXISTS public.payments (
-  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   participant_id UUID NOT NULL REFERENCES public.participants(id) ON DELETE CASCADE,
   category TEXT NOT NULL DEFAULT 'shirt'
     CHECK (category IN ('shirt', 'registration', 'other')),
@@ -41,12 +41,15 @@ CREATE INDEX IF NOT EXISTS idx_payments_created_at ON public.payments(created_at
 -- Trigger de atualização automática de updated_at
 -- =============================================
 CREATE OR REPLACE FUNCTION public.update_updated_at_column()
-RETURNS TRIGGER AS $$
+RETURNS TRIGGER
+LANGUAGE plpgsql
+SET search_path = ''
+AS $$
 BEGIN
   NEW.updated_at = NOW();
   RETURN NEW;
 END;
-$$ LANGUAGE plpgsql;
+$$;
 
 DROP TRIGGER IF EXISTS update_payments_updated_at ON public.payments;
 CREATE TRIGGER update_payments_updated_at
