@@ -23,11 +23,12 @@ Este projeto foi concebido e estruturado no âmbito da **Atividade Extensionista
 Substituir listas e planilhas descentralizadas por uma interface simples, intuitiva e acessível principalmente pelo celular, permitindo:
 
 - Login de coordenadores autorizados
-- Dashboard com resumo do retiro
+- Dashboard com resumo do retiro e arrecadação
 - Cadastro, edição e exclusão de participantes
 - Gerenciamento de responsáveis
-- Pesquisa e filtros por status
-- Exportação de dados em CSV
+- **Controle de Pagamentos e Lista de Blusas** (quem pagou, pagamentos parciais, quem não pagou, grade de tamanhos PP–XG e geração de lista em lote)
+- Pesquisa e filtros por status e tamanho
+- Exportação de participantes e pagamentos/blusas em CSV
 
 ## 🌿 Estrutura de Branches & Fluxo de Trabalho
 
@@ -93,9 +94,11 @@ cp .env.example .env
 
 Acesse o **SQL Editor** no painel do Supabase e execute os scripts na seguinte ordem:
 
-1. `supabase/schema.sql` — Cria as tabelas, índices e triggers
+1. `supabase/schema.sql` — Cria as tabelas (`users`, `participants`, `guardians`, `participant_guardians`, `payments`), índices e triggers
 2. `supabase/rls.sql` — Configura as políticas de segurança (RLS)
 3. `supabase/seed.sql` — (Opcional) Popula com dados de teste
+
+> 💡 **Atualizando um banco já existente?** Execute apenas o arquivo [`supabase/migration_payments.sql`](supabase/migration_payments.sql) no **SQL Editor** do Supabase para adicionar a tabela `payments` sem alterar os participantes já cadastrados.
 
 ### 4. Criar um usuário coordenador
 
@@ -156,20 +159,22 @@ Os arquivos de produção serão gerados na pasta `dist/`.
 src/
 ├── components/          # Componentes reutilizáveis
 │   ├── ui/              # Primitivos (Button, Input, Badge, Card, Modal...)
+│   ├── payments/        # Componentes de pagamento (PaymentBadge, PaymentModal)
 │   └── layout/          # Layout (Sidebar, BottomNav, AppLayout)
-├── pages/               # Páginas (por rota)
-├── contexts/            # React contexts (Auth, Toast)
+├── pages/               # Páginas (Dashboard, Participantes, Pagamentos & Blusas, Relatórios...)
+├── contexts/            # React contexts (Auth, Toast, Sidebar)
 ├── services/            # Acesso ao Supabase (queries e mutations)
 ├── types/               # Interfaces TypeScript
-├── utils/               # Utilitários (date, csv, status)
+├── utils/               # Utilitários (date, csv, status, payment)
 ├── lib/                 # Configuração do Supabase client
 ├── App.tsx              # Rotas e providers
 └── main.tsx             # Ponto de entrada
 
 supabase/
-├── schema.sql           # DDL do banco
-├── rls.sql              # Políticas de segurança
-└── seed.sql             # Dados de teste
+├── schema.sql               # DDL completo do banco
+├── rls.sql                  # Políticas de segurança (RLS)
+├── migration_payments.sql   # Migration incremental da tabela de pagamentos e blusas
+└── seed.sql                 # Dados de teste
 ```
 
 ### Decisões de Arquitetura
@@ -188,10 +193,12 @@ supabase/
 ```
 users ─────────── Supabase Auth
 participants ──── guardians (via participant_guardians)
+     └─────────── payments (blusas, inscrições e outros)
 ```
 
 - Um responsável pode ter múltiplos participantes
 - Um participante pode ter múltiplos responsáveis (via tabela junction)
+- Um participante pode possuir registros de pagamento por categoria (ex: blusa com tamanho `PP–XG`, inscrição) com controle de valor total, valor pago, status (`paid`, `partial`, `unpaid`) e forma de pagamento
 
 ## 🔒 Segurança
 
@@ -217,7 +224,6 @@ A aplicação pode ser instalada na tela inicial do celular:
 
 ## 🔮 Possíveis Evoluções Futuras
 
-- Controle de pagamentos
 - Integração com WhatsApp
 - Notificações push
 - Controle de quartos e transporte

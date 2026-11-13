@@ -1,15 +1,21 @@
 import { useEffect, useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { Users, UserCheck, Clock, Shield, Plus, ChevronRight } from 'lucide-react';
+import { Users, UserCheck, Clock, Shield, Plus, ChevronRight, Wallet, Shirt } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { fetchDashboardStats, fetchRecentParticipants } from '../services/participants';
+import {
+  calculatePaymentSummary,
+  fetchPaymentsWithParticipants,
+  isPaymentsTableMissingError,
+} from '../services/payments';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { StatCardSkeleton, CardSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { EmptyState } from '../components/ui/EmptyState';
 import { formatDate } from '../utils/date';
-import type { DashboardStats, ParticipantWithGuardian } from '../types/database';
+import { formatCurrency } from '../utils/payment';
+import type { DashboardStats, ParticipantWithGuardian, PaymentSummary } from '../types/database';
 
 export function DashboardPage() {
   const { profile, user } = useAuth();
@@ -17,6 +23,7 @@ export function DashboardPage() {
 
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentParticipants, setRecentParticipants] = useState<ParticipantWithGuardian[]>([]);
+  const [paymentSummary, setPaymentSummary] = useState<PaymentSummary | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -33,6 +40,15 @@ export function DashboardPage() {
       ]);
       setStats(statsData);
       setRecentParticipants(recentData);
+
+      try {
+        const payData = await fetchPaymentsWithParticipants();
+        setPaymentSummary(calculatePaymentSummary(payData.payments));
+      } catch (payErr) {
+        if (!isPaymentsTableMissingError(payErr)) {
+          setPaymentSummary(null);
+        }
+      }
     } catch {
       setError('Não foi possível carregar os dados do dashboard.');
     } finally {
@@ -124,6 +140,54 @@ export function DashboardPage() {
             </Card>
           ))}
         </div>
+      )}
+
+      {/* Payments & Shirts Quick Summary */}
+      {!loading && !error && (
+        <Card
+          hoverable
+          onClick={() => navigate('/payments')}
+          className="p-4 sm:p-5 border-indigo-100 bg-gradient-to-r from-white to-indigo-50/40"
+        >
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div className="flex items-center gap-3.5">
+              <div className="w-11 h-11 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center flex-shrink-0">
+                <Wallet className="w-5 h-5 text-indigo-600" />
+              </div>
+              <div>
+                <h2 className="text-sm sm:text-base font-bold text-slate-900 flex items-center gap-2">
+                  Controle de Pagamentos & Blusas
+                </h2>
+                {paymentSummary ? (
+                  <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                    Arrecadado:{' '}
+                    <strong className="text-emerald-700">
+                      {formatCurrency(paymentSummary.total_collected)}
+                    </strong>{' '}
+                    • {paymentSummary.paid_count} pago{paymentSummary.paid_count !== 1 ? 's' : ''} •{' '}
+                    {paymentSummary.unpaid_count + paymentSummary.partial_count} pendente
+                    {paymentSummary.unpaid_count + paymentSummary.partial_count !== 1 ? 's' : ''}
+                    {paymentSummary.shirt_count > 0 && (
+                      <span className="inline-flex items-center gap-1 ml-2 text-indigo-700 font-semibold">
+                        <Shirt className="w-3.5 h-3.5" />
+                        {paymentSummary.shirt_count} blusa{paymentSummary.shirt_count !== 1 ? 's' : ''}
+                      </span>
+                    )}
+                  </p>
+                ) : (
+                  <p className="text-xs sm:text-sm text-slate-600 mt-0.5">
+                    Gerencie quem pagou e organize a lista de blusas do retiro.
+                  </p>
+                )}
+              </div>
+            </div>
+
+            <span className="text-sm font-bold text-indigo-600 flex items-center gap-1 self-end sm:self-center">
+              Abrir lista
+              <ChevronRight className="w-4 h-4 stroke-[2.5]" />
+            </span>
+          </div>
+        </Card>
       )}
 
       {/* Recent Registrations */}

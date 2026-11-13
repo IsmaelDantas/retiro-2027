@@ -8,6 +8,7 @@ ALTER TABLE public.users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.participants ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.guardians ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.participant_guardians ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.payments ENABLE ROW LEVEL SECURITY;
 
 -- =============================================
 -- Users policies
@@ -98,6 +99,34 @@ CREATE POLICY "Authenticated users can insert participant_guardians"
 
 CREATE POLICY "Authenticated users can delete participant_guardians"
   ON public.participant_guardians
+  FOR DELETE
+  TO authenticated
+  USING (true);
+
+-- =============================================
+-- Payments policies
+-- =============================================
+CREATE POLICY "Authenticated users can read payments"
+  ON public.payments
+  FOR SELECT
+  TO authenticated
+  USING (true);
+
+CREATE POLICY "Authenticated users can insert payments"
+  ON public.payments
+  FOR INSERT
+  TO authenticated
+  WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can update payments"
+  ON public.payments
+  FOR UPDATE
+  TO authenticated
+  USING (true)
+  WITH CHECK (true);
+
+CREATE POLICY "Authenticated users can delete payments"
+  ON public.payments
   FOR DELETE
   TO authenticated
   USING (true);

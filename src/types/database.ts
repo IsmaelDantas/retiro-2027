@@ -65,3 +65,53 @@ export interface DashboardStats {
   pending: number;
   total_guardians: number;
 }
+
+/* ===== Payment & Shirt types ===== */
+
+export type PaymentCategory = 'shirt' | 'registration' | 'other';
+export type PaymentStatus = 'unpaid' | 'partial' | 'paid';
+export type PaymentMethod = 'pix' | 'cash' | 'card' | 'transfer';
+export type ShirtSize = 'PP' | 'P' | 'M' | 'G' | 'GG' | 'XG';
+
+export interface Payment {
+  id: string;
+  participant_id: string;
+  category: PaymentCategory;
+  description: string | null;
+  shirt_size: ShirtSize | null;
+  amount: number;
+  paid_amount: number;
+  status: PaymentStatus;
+  payment_method: PaymentMethod | null;
+  paid_at: string | null;
+  notes: string | null;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface PaymentWithParticipant extends Payment {
+  participant: ParticipantWithGuardian | null;
+}
+
+export interface PaymentFormData {
+  participant_id: string;
+  category: PaymentCategory;
+  description: string;
+  shirt_size: ShirtSize | '';
+  amount: string;
+  paid_amount: string;
+  status: PaymentStatus;
+  payment_method: PaymentMethod | '';
+  notes: string;
+}
+
+export interface PaymentSummary {
+  total_expected: number;
+  total_collected: number;
+  total_pending: number;
+  paid_count: number;
+  partial_count: number;
+  unpaid_count: number;
+  shirt_count: number;
+  shirt_sizes: Record<ShirtSize, number>;
+}

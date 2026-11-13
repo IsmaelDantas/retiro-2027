@@ -26,3 +26,11 @@ INSERT INTO public.participant_guardians (participant_id, guardian_id) VALUES
   ('b3333333-3333-3333-3333-333333333333', 'a2222222-2222-2222-2222-222222222222'),  -- Lucas → José Oliveira
   ('b4444444-4444-4444-4444-444444444444', 'a3333333-3333-3333-3333-333333333333'),  -- Mariana → Ana Souza
   ('b5555555-5555-5555-5555-555555555555', 'a4444444-4444-4444-4444-444444444444');  -- Gabriel → Carlos Santos
+
+-- Insert test payments (shirts and registration)
+INSERT INTO public.payments (participant_id, category, description, shirt_size, amount, paid_amount, status, payment_method, paid_at) VALUES
+  ('b1111111-1111-1111-1111-111111111111', 'shirt', 'Blusa Retiro 2027', 'M', 45.00, 45.00, 'paid', 'pix', NOW()),
+  ('b2222222-2222-2222-2222-222222222222', 'shirt', 'Blusa Retiro 2027', 'P', 45.00, 0.00, 'unpaid', NULL, NULL),
+  ('b3333333-3333-3333-3333-333333333333', 'shirt', 'Blusa Retiro 2027', 'G', 45.00, 20.00, 'partial', 'cash', NOW()),
+  ('b4444444-4444-4444-4444-444444444444', 'shirt', 'Blusa Retiro 2027', 'M', 45.00, 45.00, 'paid', 'pix', NOW()),
+  ('b1111111-1111-1111-1111-111111111111', 'registration', 'Inscrição Retiro 2027', NULL, 150.00, 150.00, 'paid', 'pix', NOW());

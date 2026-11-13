@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -11,21 +11,40 @@ import {
   Clock,
   User as UserIcon,
   Users,
+  Wallet,
+  Plus,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   fetchParticipant,
   updateParticipantStatus,
   deleteParticipant,
 } from '../services/participants';
+import {
+  createPayment,
+  deletePayment,
+  fetchParticipantPayments,
+  isPaymentsTableMissingError,
+  markPaymentAsPaid,
+  updatePayment,
+} from '../services/payments';
 import { Button } from '../components/ui/Button';
 import { Badge } from '../components/ui/Badge';
 import { Card } from '../components/ui/Card';
 import { Modal } from '../components/ui/Modal';
 import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
+import { PaymentBadge } from '../components/payments/PaymentBadge';
+import { PaymentModal } from '../components/payments/PaymentModal';
 import { useToast } from '../contexts/ToastContext';
 import { calculateAge, formatDate, formatDateTime } from '../utils/date';
-import type { ParticipantStatus, ParticipantWithGuardian } from '../types/database';
+import { formatCurrency, getPaymentCategoryLabel, getPaymentMethodLabel } from '../utils/payment';
+import type {
+  ParticipantStatus,
+  ParticipantWithGuardian,
+  Payment,
+  PaymentFormData,
+} from '../types/database';
 import { STATUS_MAP } from '../utils/status';
 
 export function ParticipantDetailPage() {
@@ -40,8 +59,13 @@ export function ParticipantDetailPage() {
   const [showStatusModal, setShowStatusModal] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [updatingStatus, setUpdatingStatus] = useState(false);
+  const [payments, setPayments] = useState<Payment[]>([]);
+  const [paymentsMissingTable, setPaymentsMissingTable] = useState(false);
+  const [paymentModalOpen, setPaymentModalOpen] = useState(false);
+  const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
+  const [busyPaymentId, setBusyPaymentId] = useState<string | null>(null);
 
-  const loadParticipant = async () => {
+  const loadParticipant = useCallback(async () => {
     if (!id) return;
     setLoading(true);
     setError(null);
@@ -51,17 +75,69 @@ export function ParticipantDetailPage() {
         setError('Participante não encontrado.');
       } else {
         setParticipant(data);
+        try {
+          const payData = await fetchParticipantPayments(id);
+          setPayments(payData);
+          setPaymentsMissingTable(false);
+        } catch (payErr) {
+          if (isPaymentsTableMissingError(payErr)) {
+            setPaymentsMissingTable(true);
+          }
+        }
       }
     } catch {
       setError('Não foi possível carregar os dados do participante.');
     } finally {
       setLoading(false);
     }
-  };
+  }, [id]);
 
   useEffect(() => {
     loadParticipant();
-  }, [id]);
+  }, [loadParticipant]);
+
+  const handleSavePayment = async (formData: PaymentFormData, editing?: Payment | null) => {
+    if (editing) {
+      await updatePayment(editing.id, formData, editing.paid_at);
+      showToast('Pagamento atualizado com sucesso.');
+    } else {
+      await createPayment(formData);
+      showToast('Pagamento registrado com sucesso.');
+    }
+    if (id) {
+      const updated = await fetchParticipantPayments(id);
+      setPayments(updated);
+    }
+  };
+
+  const handleQuickPay = async (payment: Payment) => {
+    setBusyPaymentId(payment.id);
+    try {
+      await markPaymentAsPaid(payment.id, payment.amount, payment.payment_method ?? 'pix');
+      showToast('Pagamento confirmado!');
+      if (id) {
+        const updated = await fetchParticipantPayments(id);
+        setPayments(updated);
+      }
+    } catch {
+      showToast('Erro ao confirmar pagamento.', 'error');
+    } finally {
+      setBusyPaymentId(null);
+    }
+  };
+
+  const handleDeletePayment = async (paymentId: string) => {
+    setBusyPaymentId(paymentId);
+    try {
+      await deletePayment(paymentId);
+      showToast('Registro de pagamento excluído.');
+      setPayments((prev) => prev.filter((p) => p.id !== paymentId));
+    } catch {
+      showToast('Erro ao excluir pagamento.', 'error');
+    } finally {
+      setBusyPaymentId(null);
+    }
+  };
 
   const handleDelete = async () => {
     if (!id) return;
@@ -238,6 +314,103 @@ export function ParticipantDetailPage() {
         </div>
       </Card>
 
+      {/* Payments & Shirts Info */}
+      <Card>
+        <div className="flex items-center justify-between mb-3">
+          <h2 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+            <Wallet className="w-4 h-4 text-primary-600" />
+            Pagamentos & Blusa
+          </h2>
+          {!paymentsMissingTable && (
+            <Button
+              size="sm"
+              variant="secondary"
+              onClick={() => {
+                setEditingPayment(null);
+                setPaymentModalOpen(true);
+              }}
+            >
+              <Plus className="w-3.5 h-3.5" />
+              Registrar
+            </Button>
+          )}
+        </div>
+
+        {paymentsMissingTable ? (
+          <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
+            Execute <code className="font-mono">supabase/migration_payments.sql</code> no Supabase para ativar os pagamentos.
+          </p>
+        ) : payments.length === 0 ? (
+          <p className="text-xs text-text-tertiary">
+            Nenhum pagamento ou pedido de blusa registrado para este participante ainda.
+          </p>
+        ) : (
+          <div className="space-y-2.5">
+            {payments.map((pay) => (
+              <div
+                key={pay.id}
+                className="p-3 rounded-xl border border-border bg-surface-secondary/50 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5"
+              >
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="text-sm font-semibold text-text-primary">
+                      {pay.description || getPaymentCategoryLabel(pay.category)}
+                    </span>
+                    {pay.shirt_size && (
+                      <span className="px-2 py-0.5 rounded-md bg-indigo-50 text-indigo-700 text-xs font-bold border border-indigo-100">
+                        Tam: {pay.shirt_size}
+                      </span>
+                    )}
+                    <PaymentBadge status={pay.status} />
+                  </div>
+                  <p className="text-xs text-text-secondary">
+                    Pago: <strong>{formatCurrency(pay.paid_amount)}</strong> de{' '}
+                    {formatCurrency(pay.amount)}
+                    {pay.payment_method ? ` • ${getPaymentMethodLabel(pay.payment_method)}` : ''}
+                    {pay.paid_at ? ` • ${formatDate(pay.paid_at)}` : ''}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1.5">
+                  {pay.status !== 'paid' && (
+                    <Button
+                      size="sm"
+                      className="bg-emerald-600 hover:bg-emerald-700 text-xs px-2.5 py-1.5"
+                      loading={busyPaymentId === pay.id}
+                      onClick={() => handleQuickPay(pay)}
+                    >
+                      <CheckCircle2 className="w-3.5 h-3.5" />
+                      Pagar
+                    </Button>
+                  )}
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    className="px-2.5 py-1.5"
+                    onClick={() => {
+                      setEditingPayment(pay);
+                      setPaymentModalOpen(true);
+                    }}
+                    title="Editar pagamento"
+                  >
+                    <Edit className="w-3.5 h-3.5" />
+                  </Button>
+                  <Button
+                    variant="danger"
+                    size="sm"
+                    className="px-2.5 py-1.5"
+                    loading={busyPaymentId === pay.id}
+                    onClick={() => handleDeletePayment(pay.id)}
+                    title="Excluir pagamento"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                  </Button>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </Card>
+
       {/* LGPD Notice */}
       <p className="text-xs text-text-tertiary text-center px-4 pb-2">
         Os dados exibidos são utilizados exclusivamente para a organização do Retiro de Jovens 2027.
@@ -310,6 +483,23 @@ export function ParticipantDetailPage() {
           ))}
         </div>
       </Modal>
+
+      {/* Payment Create/Edit Modal */}
+      {participant && (
+        <PaymentModal
+          isOpen={paymentModalOpen}
+          onClose={() => setPaymentModalOpen(false)}
+          onSave={handleSavePayment}
+          participants={[
+            {
+              ...participant,
+            },
+          ]}
+          editingPayment={editingPayment}
+          defaultParticipantId={participant.id}
+          defaultCategory="shirt"
+        />
+      )}
     </div>
   );
 }

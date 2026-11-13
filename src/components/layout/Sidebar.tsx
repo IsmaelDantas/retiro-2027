@@ -3,6 +3,7 @@ import {
   LayoutDashboard,
   Users,
   UserPlus,
+  Wallet,
   FileBarChart,
   User,
   LogOut,
@@ -15,6 +16,7 @@ const navItems = [
   { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/participants', label: 'Participantes', icon: Users },
   { to: '/participants/new', label: 'Nova Inscrição', icon: UserPlus },
+  { to: '/payments', label: 'Pagamentos & Blusas', icon: Wallet },
   { to: '/reports', label: 'Relatórios', icon: FileBarChart },
   { to: '/profile', label: 'Perfil', icon: User },
 ];

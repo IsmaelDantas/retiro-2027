@@ -10,6 +10,7 @@ import { DashboardPage } from './pages/DashboardPage';
 import { ParticipantsPage } from './pages/ParticipantsPage';
 import { ParticipantDetailPage } from './pages/ParticipantDetailPage';
 import { ParticipantFormPage } from './pages/ParticipantFormPage';
+import { PaymentsPage } from './pages/PaymentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { ProfilePage } from './pages/ProfilePage';
 
@@ -37,6 +38,7 @@ export default function App() {
                 <Route path="/participants/new" element={<ParticipantFormPage />} />
                 <Route path="/participants/:id" element={<ParticipantDetailPage />} />
                 <Route path="/participants/:id/edit" element={<ParticipantFormPage />} />
+                <Route path="/payments" element={<PaymentsPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>
