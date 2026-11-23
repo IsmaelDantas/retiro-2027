@@ -1,0 +1,10 @@
+node_modules
+.env
+.env.*
+!.env.example
+.git
+.vercel
+dist
+retiro_inscricoes*.sql
+retiro_termos*.sql
+*.zip
