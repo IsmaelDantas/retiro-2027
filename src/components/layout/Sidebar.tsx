@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   Users,
   UserPlus,
-  Wallet,
+  Shirt,
   FileBarChart,
   Upload,
   User,
@@ -19,7 +19,7 @@ const navItems = [
   { to: '/participants', label: 'Participantes', icon: Users, requiresWrite: false },
   { to: '/participants/new', label: 'Nova Inscrição', icon: UserPlus, requiresWrite: true },
   { to: '/import', label: 'Importar CSV', icon: Upload, requiresWrite: true },
-  { to: '/payments', label: 'Camisas & Pag.', icon: Wallet, requiresWrite: false },
+  { to: '/payments', label: 'Camisas', icon: Shirt, requiresWrite: false },
   { to: '/reports', label: 'Relatórios', icon: FileBarChart, requiresWrite: false },
   { to: '/profile', label: 'Perfil', icon: User, requiresWrite: false },
 ];

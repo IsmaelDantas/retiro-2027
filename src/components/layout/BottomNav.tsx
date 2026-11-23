@@ -3,7 +3,7 @@ import {
   LayoutDashboard,
   Users,
   UserPlus,
-  Wallet,
+  Shirt,
   FileBarChart,
   User,
 } from 'lucide-react';
@@ -14,7 +14,7 @@ const navItems = [
   { to: '/dashboard', label: 'Início', icon: LayoutDashboard, requiresWrite: false },
   { to: '/participants', label: 'Lista', icon: Users, requiresWrite: false },
   { to: '/participants/new', label: 'Inscrição', icon: UserPlus, requiresWrite: true },
-  { to: '/payments', label: 'Camisas', icon: Wallet, requiresWrite: false },
+  { to: '/payments', label: 'Camisas', icon: Shirt, requiresWrite: false },
   { to: '/reports', label: 'Relat.', icon: FileBarChart, requiresWrite: false },
   { to: '/profile', label: 'Perfil', icon: User, requiresWrite: false },
 ];
