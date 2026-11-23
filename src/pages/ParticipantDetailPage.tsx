@@ -37,6 +37,8 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { PaymentBadge } from '../components/payments/PaymentBadge';
 import { PaymentModal } from '../components/payments/PaymentModal';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
+import { canManageData } from '../utils/permissions';
 import { calculateAge, formatDate, formatDateTime } from '../utils/date';
 import { formatCurrency, getPaymentCategoryLabel, getPaymentMethodLabel } from '../utils/payment';
 import type {
@@ -51,6 +53,8 @@ export function ParticipantDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { profile } = useAuth();
+  const writable = canManageData(profile?.role);
 
   const [participant, setParticipant] = useState<ParticipantWithGuardian | null>(null);
   const [loading, setLoading] = useState(true);
@@ -223,28 +227,30 @@ export function ParticipantDetailPage() {
             <Badge status={participant.status} />
           </div>
         </div>
-        <div className="flex items-center gap-2">
-          <Button
-            variant="secondary"
-            size="sm"
-            onClick={() => setShowStatusModal(true)}
-          >
-            Alterar Status
-          </Button>
-          <Link to={`/participants/${id}/edit`}>
-            <Button variant="secondary" size="sm">
-              <Edit className="w-4 h-4" />
-              Editar
+        {writable && (
+          <div className="flex items-center gap-2">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => setShowStatusModal(true)}
+            >
+              Alterar Status
             </Button>
-          </Link>
-          <Button
-            variant="danger"
-            size="sm"
-            onClick={() => setShowDeleteModal(true)}
-          >
-            <Trash2 className="w-4 h-4" />
-          </Button>
-        </div>
+            <Link to={`/participants/${id}/edit`}>
+              <Button variant="secondary" size="sm">
+                <Edit className="w-4 h-4" />
+                Editar
+              </Button>
+            </Link>
+            <Button
+              variant="danger"
+              size="sm"
+              onClick={() => setShowDeleteModal(true)}
+            >
+              <Trash2 className="w-4 h-4" />
+            </Button>
+          </div>
+        )}
       </div>
 
       {/* Participant Info */}
@@ -321,7 +327,7 @@ export function ParticipantDetailPage() {
             <Wallet className="w-4 h-4 text-primary-600" />
             Pagamentos & Blusa
           </h2>
-          {!paymentsMissingTable && (
+          {!paymentsMissingTable && writable && (
             <Button
               size="sm"
               variant="secondary"
@@ -370,41 +376,43 @@ export function ParticipantDetailPage() {
                     {pay.paid_at ? ` • ${formatDate(pay.paid_at)}` : ''}
                   </p>
                 </div>
-                <div className="flex items-center gap-1.5">
-                  {pay.status !== 'paid' && (
+                {writable && (
+                  <div className="flex items-center gap-1.5">
+                    {pay.status !== 'paid' && (
+                      <Button
+                        size="sm"
+                        className="bg-emerald-600 hover:bg-emerald-700 text-xs px-2.5 py-1.5"
+                        loading={busyPaymentId === pay.id}
+                        onClick={() => handleQuickPay(pay)}
+                      >
+                        <CheckCircle2 className="w-3.5 h-3.5" />
+                        Pagar
+                      </Button>
+                    )}
                     <Button
+                      variant="secondary"
                       size="sm"
-                      className="bg-emerald-600 hover:bg-emerald-700 text-xs px-2.5 py-1.5"
-                      loading={busyPaymentId === pay.id}
-                      onClick={() => handleQuickPay(pay)}
+                      className="px-2.5 py-1.5"
+                      onClick={() => {
+                        setEditingPayment(pay);
+                        setPaymentModalOpen(true);
+                      }}
+                      title="Editar pagamento"
                     >
-                      <CheckCircle2 className="w-3.5 h-3.5" />
-                      Pagar
+                      <Edit className="w-3.5 h-3.5" />
                     </Button>
-                  )}
-                  <Button
-                    variant="secondary"
-                    size="sm"
-                    className="px-2.5 py-1.5"
-                    onClick={() => {
-                      setEditingPayment(pay);
-                      setPaymentModalOpen(true);
-                    }}
-                    title="Editar pagamento"
-                  >
-                    <Edit className="w-3.5 h-3.5" />
-                  </Button>
-                  <Button
-                    variant="danger"
-                    size="sm"
-                    className="px-2.5 py-1.5"
-                    loading={busyPaymentId === pay.id}
-                    onClick={() => handleDeletePayment(pay.id)}
-                    title="Excluir pagamento"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </Button>
-                </div>
+                    <Button
+                      variant="danger"
+                      size="sm"
+                      className="px-2.5 py-1.5"
+                      loading={busyPaymentId === pay.id}
+                      onClick={() => handleDeletePayment(pay.id)}
+                      title="Excluir pagamento"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </Button>
+                  </div>
+                )}
               </div>
             ))}
           </div>

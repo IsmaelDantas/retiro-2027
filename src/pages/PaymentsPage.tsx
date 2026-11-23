@@ -36,6 +36,8 @@ import { CardSkeleton, StatCardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
+import { canManageData } from '../utils/permissions';
 import { formatDate } from '../utils/date';
 import { downloadCSV, paymentsToCSV } from '../utils/csv';
 import {
@@ -58,6 +60,8 @@ import type {
 
 export function PaymentsPage() {
   const { showToast } = useToast();
+  const { profile } = useAuth();
+  const writable = canManageData(profile?.role);
 
   const [payments, setPayments] = useState<PaymentWithParticipant[]>([]);
   const [participants, setParticipants] = useState<ParticipantWithGuardian[]>([]);
@@ -346,10 +350,12 @@ export function PaymentsPage() {
             <Download className="w-4 h-4" />
             Exportar CSV
           </Button>
-          <Button size="sm" onClick={() => handleOpenCreate()}>
-            <Plus className="w-4 h-4" />
-            Novo Registro
-          </Button>
+          {writable && (
+            <Button size="sm" onClick={() => handleOpenCreate()}>
+              <Plus className="w-4 h-4" />
+              Novo Registro
+            </Button>
+          )}
         </div>
       </div>
 
@@ -544,18 +550,20 @@ export function PaymentsPage() {
               }
               icon={<Wallet className="w-8 h-8 text-slate-400" />}
               action={
-                <div className="flex flex-wrap gap-2 justify-center">
-                  <Button size="sm" onClick={() => handleOpenCreate()}>
-                    <Plus className="w-4 h-4" />
-                    Registrar Pagamento
-                  </Button>
-                  {missingParticipants.length > 0 && (
-                    <Button variant="secondary" size="sm" onClick={handleOpenBatchModal}>
-                      <ListPlus className="w-4 h-4" />
-                      Gerar Lista ({missingParticipants.length})
+                writable ? (
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <Button size="sm" onClick={() => handleOpenCreate()}>
+                      <Plus className="w-4 h-4" />
+                      Registrar Pagamento
                     </Button>
-                  )}
-                </div>
+                    {missingParticipants.length > 0 && (
+                      <Button variant="secondary" size="sm" onClick={handleOpenBatchModal}>
+                        <ListPlus className="w-4 h-4" />
+                        Gerar Lista ({missingParticipants.length})
+                      </Button>
+                    )}
+                  </div>
+                ) : undefined
               }
             />
           ) : (
@@ -614,46 +622,48 @@ export function PaymentsPage() {
                         </div>
                       </div>
 
-                      <div className="flex items-center gap-2 pt-1">
-                        {p.status !== 'paid' ? (
-                          <Button
-                            size="sm"
-                            className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                            loading={isBusy}
-                            onClick={() => handleQuickMarkPaid(p)}
-                          >
-                            <CheckCircle2 className="w-4 h-4" />
-                            Marcar Pago
-                          </Button>
-                        ) : (
+                      {writable && (
+                        <div className="flex items-center gap-2 pt-1">
+                          {p.status !== 'paid' ? (
+                            <Button
+                              size="sm"
+                              className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                              loading={isBusy}
+                              onClick={() => handleQuickMarkPaid(p)}
+                            >
+                              <CheckCircle2 className="w-4 h-4" />
+                              Marcar Pago
+                            </Button>
+                          ) : (
+                            <Button
+                              variant="secondary"
+                              size="sm"
+                              className="flex-1"
+                              loading={isBusy}
+                              onClick={() => handleQuickMarkUnpaid(p)}
+                            >
+                              <RotateCcw className="w-3.5 h-3.5" />
+                              Desmarcar
+                            </Button>
+                          )}
                           <Button
                             variant="secondary"
                             size="sm"
-                            className="flex-1"
-                            loading={isBusy}
-                            onClick={() => handleQuickMarkUnpaid(p)}
+                            onClick={() => handleOpenEdit(p)}
+                            aria-label="Editar pagamento"
                           >
-                            <RotateCcw className="w-3.5 h-3.5" />
-                            Desmarcar
+                            <Edit className="w-4 h-4" />
                           </Button>
-                        )}
-                        <Button
-                          variant="secondary"
-                          size="sm"
-                          onClick={() => handleOpenEdit(p)}
-                          aria-label="Editar pagamento"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="danger"
-                          size="sm"
-                          onClick={() => setDeletingPayment(p)}
-                          aria-label="Excluir pagamento"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
+                          <Button
+                            variant="danger"
+                            size="sm"
+                            onClick={() => setDeletingPayment(p)}
+                            aria-label="Excluir pagamento"
+                          >
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      )}
                     </Card>
                   );
                 })}
@@ -740,48 +750,50 @@ export function PaymentsPage() {
                             <PaymentBadge status={p.status} />
                           </td>
                           <td className="px-5 py-4 text-right">
-                            <div className="inline-flex items-center gap-1.5">
-                              {p.status !== 'paid' ? (
-                                <Button
-                                  size="sm"
-                                  className="bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs"
-                                  loading={isBusy}
-                                  onClick={() => handleQuickMarkPaid(p)}
-                                >
-                                  <CheckCircle2 className="w-3.5 h-3.5" />
-                                  Pagar
-                                </Button>
-                              ) : (
+                            {writable && (
+                              <div className="inline-flex items-center gap-1.5">
+                                {p.status !== 'paid' ? (
+                                  <Button
+                                    size="sm"
+                                    className="bg-emerald-600 hover:bg-emerald-700 px-3 py-1.5 text-xs"
+                                    loading={isBusy}
+                                    onClick={() => handleQuickMarkPaid(p)}
+                                  >
+                                    <CheckCircle2 className="w-3.5 h-3.5" />
+                                    Pagar
+                                  </Button>
+                                ) : (
+                                  <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    className="px-3 py-1.5 text-xs"
+                                    loading={isBusy}
+                                    onClick={() => handleQuickMarkUnpaid(p)}
+                                    title="Marcar como não pago"
+                                  >
+                                    <RotateCcw className="w-3.5 h-3.5" />
+                                  </Button>
+                                )}
                                 <Button
                                   variant="secondary"
                                   size="sm"
-                                  className="px-3 py-1.5 text-xs"
-                                  loading={isBusy}
-                                  onClick={() => handleQuickMarkUnpaid(p)}
-                                  title="Marcar como não pago"
+                                  className="px-2.5 py-1.5"
+                                  onClick={() => handleOpenEdit(p)}
+                                  title="Editar"
                                 >
-                                  <RotateCcw className="w-3.5 h-3.5" />
+                                  <Edit className="w-3.5 h-3.5" />
                                 </Button>
-                              )}
-                              <Button
-                                variant="secondary"
-                                size="sm"
-                                className="px-2.5 py-1.5"
-                                onClick={() => handleOpenEdit(p)}
-                                title="Editar"
-                              >
-                                <Edit className="w-3.5 h-3.5" />
-                              </Button>
-                              <Button
-                                variant="danger"
-                                size="sm"
-                                className="px-2.5 py-1.5"
-                                onClick={() => setDeletingPayment(p)}
-                                title="Excluir"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                              </Button>
-                            </div>
+                                <Button
+                                  variant="danger"
+                                  size="sm"
+                                  className="px-2.5 py-1.5"
+                                  onClick={() => setDeletingPayment(p)}
+                                  title="Excluir"
+                                >
+                                  <Trash2 className="w-3.5 h-3.5" />
+                                </Button>
+                              </div>
+                            )}
                           </td>
                         </tr>
                       );
@@ -808,10 +820,12 @@ export function PaymentsPage() {
                       Participantes ativos que ainda não possuem pedido ou pagamento nesta lista.
                     </p>
                   </div>
-                  <Button variant="secondary" size="sm" onClick={handleOpenBatchModal}>
-                    <ListPlus className="w-4 h-4" />
-                    Gerar cobrança para todos ({missingParticipants.length})
-                  </Button>
+                  {writable && (
+                    <Button variant="secondary" size="sm" onClick={handleOpenBatchModal}>
+                      <ListPlus className="w-4 h-4" />
+                      Gerar cobrança para todos ({missingParticipants.length})
+                    </Button>
+                  )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5">
@@ -828,15 +842,17 @@ export function PaymentsPage() {
                           {part.congregation || part.guardian?.full_name || 'Sem observações'}
                         </p>
                       </div>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        className="flex-shrink-0 text-xs"
-                        onClick={() => handleOpenCreate(part.id)}
-                      >
-                        <Plus className="w-3.5 h-3.5" />
-                        Registrar
-                      </Button>
+                      {writable && (
+                        <Button
+                          size="sm"
+                          variant="secondary"
+                          className="flex-shrink-0 text-xs"
+                          onClick={() => handleOpenCreate(part.id)}
+                        >
+                          <Plus className="w-3.5 h-3.5" />
+                          Registrar
+                        </Button>
+                      )}
                     </Card>
                   ))}
                 </div>

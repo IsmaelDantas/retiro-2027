@@ -11,14 +11,15 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import { useSidebar } from '../../contexts/SidebarContext';
+import { canManageData } from '../../utils/permissions';
 
 const navItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/participants', label: 'Participantes', icon: Users },
-  { to: '/participants/new', label: 'Nova Inscrição', icon: UserPlus },
-  { to: '/payments', label: 'Pagamentos & Blusas', icon: Wallet },
-  { to: '/reports', label: 'Relatórios', icon: FileBarChart },
-  { to: '/profile', label: 'Perfil', icon: User },
+  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard, requiresWrite: false },
+  { to: '/participants', label: 'Participantes', icon: Users, requiresWrite: false },
+  { to: '/participants/new', label: 'Nova Inscrição', icon: UserPlus, requiresWrite: true },
+  { to: '/payments', label: 'Camisas & Pag.', icon: Wallet, requiresWrite: false },
+  { to: '/reports', label: 'Relatórios', icon: FileBarChart, requiresWrite: false },
+  { to: '/profile', label: 'Perfil', icon: User, requiresWrite: false },
 ];
 
 export function Sidebar() {
@@ -26,6 +27,8 @@ export function Sidebar() {
   const { isDrawerOpen, closeDrawer } = useSidebar();
 
   const displayName = profile?.name || user?.email?.split('@')[0] || 'Coordenador';
+  const writable = canManageData(profile?.role);
+  const visibleNavItems = navItems.filter((item) => !item.requiresWrite || writable);
 
   if (!isDrawerOpen) return null;
 
@@ -67,7 +70,7 @@ export function Sidebar() {
 
         {/* Navigation items */}
         <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
-          {navItems.map((item) => (
+          {visibleNavItems.map((item) => (
             <NavLink
               key={item.to}
               to={item.to}

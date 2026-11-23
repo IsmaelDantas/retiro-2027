@@ -9,6 +9,8 @@ import { Button } from '../components/ui/Button';
 import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { useToast } from '../contexts/ToastContext';
+import { useAuth } from '../contexts/AuthContext';
+import { canManageData } from '../utils/permissions';
 import type { ParticipantFormData, ParticipantStatus } from '../types/database';
 
 const INITIAL_FORM: ParticipantFormData = {
@@ -46,6 +48,8 @@ export function ParticipantFormPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
   const { showToast } = useToast();
+  const { profile } = useAuth();
+  const writable = canManageData(profile?.role);
 
   const isEdit = Boolean(id);
 
@@ -179,6 +183,26 @@ export function ParticipantFormPage() {
           Voltar
         </button>
         <ErrorState message={loadError} />
+      </div>
+    );
+  }
+
+  if (!writable) {
+    return (
+      <div className="space-y-4">
+        <button
+          onClick={() => navigate(-1)}
+          className="flex items-center gap-1 text-sm text-text-secondary hover:text-text-primary transition-colors cursor-pointer"
+        >
+          <ArrowLeft className="w-4 h-4" />
+          Voltar
+        </button>
+        <div className="bg-white rounded-xl border border-border p-6 text-center space-y-2">
+          <h1 className="text-lg font-bold text-text-primary">Acesso somente leitura</h1>
+          <p className="text-sm text-text-secondary">
+            Seu perfil atual permite apenas consultar informações. Somente administradores e coordenadores podem cadastrar ou editar participantes.
+          </p>
+        </div>
       </div>
     );
   }
