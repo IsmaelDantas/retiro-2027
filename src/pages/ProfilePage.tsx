@@ -53,8 +53,15 @@ export function ProfilePage() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-text-primary">Perfil e Auditoria</h1>
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          Perfil e Auditoria
+        </h1>
+        <p className="text-sm text-slate-500">
+          Sua conta de acesso, nível de permissão e histórico recente de alterações.
+        </p>
+      </div>
 
       {/* User Info */}
       <Card className="space-y-4">
@@ -134,7 +141,7 @@ export function ProfilePage() {
                     {log.record_id ? ` • ID ${log.record_id.slice(0, 8)}...` : ''}
                   </p>
                 </div>
-                <span className="text-text-tertiary whitespace-nowrap">
+                <span className="text-text-tertiary whitespace-nowrap tabular-nums">
                   {formatDateTime(log.created_at)}
                 </span>
               </div>

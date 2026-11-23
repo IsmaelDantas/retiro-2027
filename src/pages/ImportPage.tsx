@@ -13,6 +13,7 @@ import { Card } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { Select } from '../components/ui/Select';
 import { useAuth } from '../contexts/AuthContext';
+import { useParticipantsData } from '../contexts/ParticipantsDataContext';
 import { useToast } from '../contexts/ToastContext';
 import { canManageData } from '../utils/permissions';
 import {
@@ -34,7 +35,7 @@ import {
 
 const ACTION_BADGE: Record<string, { label: string; className: string }> = {
   create: { label: 'Novo', className: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
-  update: { label: 'Atualizar', className: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  update: { label: 'Atualizar', className: 'bg-primary-50 text-primary-700 border-primary-200' },
   unchanged: { label: 'Sem mudança', className: 'bg-slate-100 text-slate-600 border-slate-200' },
   error: { label: 'Erro', className: 'bg-rose-50 text-rose-700 border-rose-200' },
 };
@@ -42,6 +43,7 @@ const ACTION_BADGE: Record<string, { label: string; className: string }> = {
 export function ImportPage() {
   const { profile } = useAuth();
   const { showToast } = useToast();
+  const { refresh } = useParticipantsData();
   const writable = canManageData(profile?.role);
 
   const [fileName, setFileName] = useState<string | null>(null);
@@ -109,6 +111,7 @@ export function ImportPage() {
     try {
       const res = await executeImport(preview);
       setResult(res);
+      await refresh(true);
       showToast(`Importação concluída: ${res.created} novo(s), ${res.updated} atualizado(s).`);
     } catch {
       showToast('Erro ao executar importação no Supabase.', 'error');
@@ -132,8 +135,8 @@ export function ImportPage() {
   return (
     <div className="space-y-5">
       {/* Header */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs space-y-2">
-        <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">
+      <div className="bg-white p-5 rounded-2xl border border-slate-200/90 shadow-2xs space-y-2">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
           Importar Inscrições (Site da Igreja)
         </h1>
         <p className="text-sm text-slate-600">
@@ -143,8 +146,8 @@ export function ImportPage() {
       </div>
 
       {/* LGPD Notice */}
-      <div className="flex items-start gap-3 p-4 rounded-xl bg-indigo-50 border border-indigo-200 text-xs text-indigo-900">
-        <Shield className="w-5 h-5 text-indigo-600 flex-shrink-0 mt-0.5" />
+      <div className="flex items-start gap-3 p-4 rounded-xl bg-primary-50 border border-primary-200 text-xs text-primary-900">
+        <Shield className="w-5 h-5 text-primary-600 flex-shrink-0 mt-0.5" />
         <div className="space-y-1">
           <p className="font-bold">Proteção LGPD e Anti-duplicidade Idempotente</p>
           <p>
@@ -159,7 +162,7 @@ export function ImportPage() {
       <Card className="p-5 space-y-4">
         <div className="flex items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <FileSpreadsheet className="w-5 h-5 text-indigo-600" />
+            <FileSpreadsheet className="w-5 h-5 text-primary-600" />
             <h2 className="text-base font-bold text-slate-900">1. Selecionar arquivo CSV</h2>
           </div>
           {fileName && (
@@ -169,8 +172,8 @@ export function ImportPage() {
           )}
         </div>
 
-        <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-indigo-400 rounded-xl p-6 cursor-pointer transition-colors bg-slate-50/50">
-          <Upload className="w-7 h-7 text-indigo-600 mb-2" />
+        <label className="flex flex-col items-center justify-center border-2 border-dashed border-slate-300 hover:border-primary-400 rounded-xl p-6 cursor-pointer transition-colors bg-slate-50/50">
+          <Upload className="w-7 h-7 text-primary-600 mb-2" />
           <span className="text-sm font-semibold text-slate-800">
             Toque para escolher o CSV exportado da igreja
           </span>
@@ -251,23 +254,23 @@ export function ImportPage() {
           <div className="grid grid-cols-2 sm:grid-cols-5 gap-2.5">
             <div className="p-3 rounded-xl bg-emerald-50 border border-emerald-200">
               <p className="text-xs font-semibold text-emerald-700">Novos</p>
-              <p className="text-2xl font-black text-emerald-900">{preview.counts.create}</p>
+              <p className="text-2xl font-bold text-emerald-900 tabular-nums">{preview.counts.create}</p>
             </div>
-            <div className="p-3 rounded-xl bg-indigo-50 border border-indigo-200">
-              <p className="text-xs font-semibold text-indigo-700">Atualizações</p>
-              <p className="text-2xl font-black text-indigo-900">{preview.counts.update}</p>
+            <div className="p-3 rounded-xl bg-primary-50 border border-primary-200">
+              <p className="text-xs font-semibold text-primary-700">Atualizações</p>
+              <p className="text-2xl font-bold text-primary-900 tabular-nums">{preview.counts.update}</p>
             </div>
             <div className="p-3 rounded-xl bg-slate-50 border border-slate-200">
               <p className="text-xs font-semibold text-slate-600">Sem mudança</p>
-              <p className="text-2xl font-black text-slate-800">{preview.counts.unchanged}</p>
+              <p className="text-2xl font-bold text-slate-800 tabular-nums">{preview.counts.unchanged}</p>
             </div>
             <div className="p-3 rounded-xl bg-amber-50 border border-amber-200">
               <p className="text-xs font-semibold text-amber-700">Canceladas</p>
-              <p className="text-2xl font-black text-amber-900">{preview.counts.cancelled}</p>
+              <p className="text-2xl font-bold text-amber-900 tabular-nums">{preview.counts.cancelled}</p>
             </div>
             <div className="p-3 rounded-xl bg-rose-50 border border-rose-200">
               <p className="text-xs font-semibold text-rose-700">Erros</p>
-              <p className="text-2xl font-black text-rose-900">{preview.counts.error}</p>
+              <p className="text-2xl font-bold text-rose-900 tabular-nums">{preview.counts.error}</p>
             </div>
           </div>
 
@@ -282,7 +285,12 @@ export function ImportPage() {
           )}
 
           {/* Table preview */}
-          <div className="overflow-x-auto border border-slate-200 rounded-xl">
+          <div
+            role="region"
+            aria-label="Prévia da importação"
+            tabIndex={0}
+            className="overflow-x-auto border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-primary-500"
+          >
             <table className="w-full text-left text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-600 uppercase">

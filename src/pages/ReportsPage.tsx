@@ -1,40 +1,21 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Download, FileSpreadsheet, Shirt } from 'lucide-react';
-import { fetchParticipants } from '../services/participants';
 import { participantsToCSV, shirtsChecklistToCSV, downloadCSV } from '../utils/csv';
 import { StatusFilter } from '../components/ui/StatusFilter';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { ErrorState } from '../components/ui/ErrorState';
 import { useToast } from '../contexts/ToastContext';
-import type { ParticipantStatus, ParticipantWithGuardian } from '../types/database';
+import { useParticipantsData } from '../contexts/ParticipantsDataContext';
+import type { ParticipantStatus } from '../types/database';
 
 export function ReportsPage() {
   const { showToast } = useToast();
+  const { participants, loading, error, refresh } = useParticipantsData();
 
-  const [participants, setParticipants] = useState<ParticipantWithGuardian[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ParticipantStatus | 'all'>('all');
   const [shirtFilter, setShirtFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [exporting, setExporting] = useState(false);
-
-  const loadParticipants = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchParticipants();
-      setParticipants(data);
-    } catch {
-      setError('Não foi possível carregar os dados.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadParticipants();
-  }, []);
 
   const filteredParticipants =
     statusFilter === 'all'
@@ -87,11 +68,16 @@ export function ReportsPage() {
   };
 
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-text-primary">Relatórios</h1>
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">Relatórios</h1>
+        <p className="text-sm text-slate-500">
+          Exporte planilhas CSV compatíveis com Excel e LibreOffice.
+        </p>
+      </div>
 
       {error ? (
-        <ErrorState message={error} onRetry={loadParticipants} />
+        <ErrorState message={error} onRetry={() => void refresh(true)} />
       ) : (
         <>
           {/* Export Participants Card */}
@@ -118,8 +104,8 @@ export function ReportsPage() {
                 <StatusFilter value={statusFilter} onChange={setStatusFilter} />
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <p className="text-sm text-text-secondary">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">
+                <p className="text-sm text-text-secondary tabular-nums">
                   {loading ? (
                     'Carregando...'
                   ) : (
@@ -171,10 +157,11 @@ export function ReportsPage() {
                 ).map((opt) => (
                   <button
                     key={opt.value}
+                    type="button"
                     onClick={() => setShirtFilter(opt.value)}
-                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                    className={`min-h-[40px] px-3.5 py-2 rounded-lg text-xs font-semibold border transition-colors cursor-pointer ${
                       shirtFilter === opt.value
-                        ? 'bg-slate-900 text-white border-slate-900'
+                        ? 'bg-primary-600 text-white border-primary-600'
                         : 'bg-white text-slate-700 border-border hover:bg-slate-50'
                     }`}
                   >
@@ -183,8 +170,8 @@ export function ReportsPage() {
                 ))}
               </div>
 
-              <div className="flex items-center justify-between pt-2 border-t border-border">
-                <p className="text-sm text-text-secondary">
+              <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">
+                <p className="text-sm text-text-secondary tabular-nums">
                   {loading ? (
                     'Carregando...'
                   ) : (

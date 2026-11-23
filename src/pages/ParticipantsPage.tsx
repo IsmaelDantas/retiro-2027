@@ -1,11 +1,18 @@
-import { useEffect, useState, useMemo } from 'react';
-import { useNavigate, Link, useSearchParams } from 'react-router-dom';
-import { Plus, UserPlus, MessageCircle, ShieldAlert, Shirt } from 'lucide-react';
-import { fetchParticipants } from '../services/participants';
+import { useMemo, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import {
+  UserPlus,
+  MessageCircle,
+  ShieldAlert,
+  Shirt,
+  SlidersHorizontal,
+  X,
+} from 'lucide-react';
+import { useAuth } from '../contexts/AuthContext';
+import { useParticipantsData } from '../contexts/ParticipantsDataContext';
 import { SearchInput } from '../components/ui/SearchInput';
 import { StatusFilter } from '../components/ui/StatusFilter';
 import { Select } from '../components/ui/Select';
-import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { CardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
@@ -13,54 +20,38 @@ import { ErrorState } from '../components/ui/ErrorState';
 import { calculateAgeAtRetreat, isMinorAtRetreat } from '../utils/date';
 import { isMinorMissingGuardian } from '../utils/dashboardMetrics';
 import { buildWhatsAppUrl } from '../utils/phone';
-import { useAuth } from '../contexts/AuthContext';
 import { canManageData } from '../utils/permissions';
-import type { ParticipantStatus, ParticipantWithGuardian } from '../types/database';
+import type { ParticipantStatus } from '../types/database';
 
 type AgeFilter = 'all' | 'minor' | 'adult' | 'missing_guardian';
 type ResidentFilter = 'all' | 'yes' | 'no';
 
 export function ParticipantsPage() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { profile } = useAuth();
+  const { participants, loading, error, refresh } = useParticipantsData();
   const writable = canManageData(profile?.role);
 
   const initialAge = (searchParams.get('age') as AgeFilter) || 'all';
+  const initialCongregation = searchParams.get('congregation') || 'all';
 
-  const [participants, setParticipants] = useState<ParticipantWithGuardian[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<ParticipantStatus | 'all'>('all');
-  const [congregationFilter, setCongregationFilter] = useState<string>('all');
+  const [congregationFilter, setCongregationFilter] = useState<string>(initialCongregation);
   const [ageFilter, setAgeFilter] = useState<AgeFilter>(initialAge);
   const [residentFilter, setResidentFilter] = useState<ResidentFilter>('all');
+  const [filtersOpen, setFiltersOpen] = useState(
+    initialAge !== 'all' || initialCongregation !== 'all'
+  );
 
-  const loadParticipants = async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchParticipants();
-      setParticipants(data);
-    } catch {
-      setError('Não foi possível carregar os participantes. Tente novamente.');
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    void loadParticipants();
-  }, []);
+  const activeAdvancedCount =
+    (congregationFilter !== 'all' ? 1 : 0) +
+    (ageFilter !== 'all' ? 1 : 0) +
+    (residentFilter !== 'all' ? 1 : 0);
 
   const congregationOptions = useMemo(() => {
     const names = Array.from(
-      new Set(
-        participants
-          .map((p) => (p.congregation ?? '').trim())
-          .filter(Boolean)
-      )
+      new Set(participants.map((p) => (p.congregation ?? '').trim()).filter(Boolean))
     ).sort((a, b) => a.localeCompare(b, 'pt-BR'));
 
     return [
@@ -95,78 +86,126 @@ export function ParticipantsPage() {
     }
 
     if (search.trim()) {
-      const searchLower = search.toLowerCase().trim();
+      const q = search.toLowerCase().trim();
       result = result.filter(
         (p) =>
-          p.full_name.toLowerCase().includes(searchLower) ||
-          p.protocol?.toLowerCase().includes(searchLower) ||
-          p.guardian?.full_name.toLowerCase().includes(searchLower) ||
-          p.congregation?.toLowerCase().includes(searchLower) ||
-          p.locality?.toLowerCase().includes(searchLower)
+          p.full_name.toLowerCase().includes(q) ||
+          p.protocol?.toLowerCase().includes(q) ||
+          p.guardian?.full_name.toLowerCase().includes(q) ||
+          p.congregation?.toLowerCase().includes(q) ||
+          p.locality?.toLowerCase().includes(q)
       );
     }
 
     return result;
   }, [participants, statusFilter, congregationFilter, ageFilter, residentFilter, search]);
 
+  const clearAllFilters = () => {
+    setSearch('');
+    setStatusFilter('all');
+    setCongregationFilter('all');
+    setAgeFilter('all');
+    setResidentFilter('all');
+    setSearchParams({});
+  };
+
   return (
-    <div className="space-y-5">
-      {/* Page Header */}
-      <div className="flex items-center justify-between bg-white p-5 rounded-2xl border border-slate-200/90 shadow-xs">
+    <div className="space-y-4">
+      {/* Header */}
+      <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-2xl font-extrabold text-slate-900 tracking-tight">Participantes</h1>
-          <p className="text-sm font-semibold text-slate-500 mt-0.5">
-            {filteredParticipants.length} participante{filteredParticipants.length !== 1 ? 's' : ''} exibido
-            {filteredParticipants.length !== 1 ? 's' : ''}
+          <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
+            Lista de inscritos
+          </h1>
+          <p className="text-sm text-text-secondary tabular-nums">
+            {filteredParticipants.length} de {participants.length} participante
+            {participants.length !== 1 ? 's' : ''}
           </p>
         </div>
+
         {writable && (
-          <Link to="/participants/new">
-            <button className="flex items-center gap-2 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 active:scale-95 transition-all min-h-[44px]">
-              <Plus className="w-5 h-5 stroke-[2.5]" />
-              <span className="hidden sm:inline">Nova Inscrição</span>
-            </button>
+          <Link
+            to="/participants/new"
+            className="hidden sm:inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-colors"
+          >
+            <UserPlus className="w-4 h-4" aria-hidden="true" />
+            <span>Nova inscrição</span>
           </Link>
         )}
       </div>
 
-      {/* Search and Coordinator Filters */}
-      <div className="space-y-3 bg-white p-4 rounded-2xl border border-slate-200/90 shadow-2xs">
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Buscar nome, protocolo, congregação, localidade ou responsável..."
-        />
-        <StatusFilter value={statusFilter} onChange={setStatusFilter} />
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5 pt-1">
-          <Select
-            label="Congregação"
-            value={congregationFilter}
-            onChange={(e) => setCongregationFilter(e.target.value)}
-            options={congregationOptions}
-          />
-          <Select
-            label="Faixa Etária / Responsável"
-            value={ageFilter}
-            onChange={(e) => setAgeFilter(e.target.value as AgeFilter)}
-            options={[
-              { value: 'all', label: 'Todas as idades' },
-              { value: 'minor', label: 'Menores (< 18 anos)' },
-              { value: 'adult', label: 'Adultos (18+ anos)' },
-              { value: 'missing_guardian', label: 'Menores sem responsável' },
-            ]}
-          />
-          <Select
-            label="Alojamento (Interno)"
-            value={residentFilter}
-            onChange={(e) => setResidentFilter(e.target.value as ResidentFilter)}
-            options={[
-              { value: 'all', label: 'Todos (Internos e Externos)' },
-              { value: 'yes', label: 'Somente internos' },
-              { value: 'no', label: 'Somente não internos' },
-            ]}
-          />
+      {/* Compact search + filter bar */}
+      <div className="bg-white rounded-xl border border-border p-3.5 sm:p-4 space-y-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]">
+        <div className="flex gap-2">
+          <div className="flex-1 min-w-0">
+            <SearchInput
+              value={search}
+              onChange={setSearch}
+              placeholder="Buscar nome, protocolo, congregação ou localidade…"
+            />
+          </div>
+          <button
+            type="button"
+            onClick={() => setFiltersOpen((prev) => !prev)}
+            aria-expanded={filtersOpen}
+            className={`inline-flex items-center gap-1.5 px-3.5 min-h-[44px] rounded-lg border text-xs sm:text-sm font-semibold cursor-pointer transition-colors flex-shrink-0 ${
+              filtersOpen || activeAdvancedCount > 0
+                ? 'bg-primary-50 text-primary-700 border-primary-200'
+                : 'bg-white text-text-secondary border-border hover:bg-surface-tertiary'
+            }`}
+          >
+            <SlidersHorizontal className="w-4 h-4" aria-hidden="true" />
+            <span>Filtros{activeAdvancedCount > 0 ? ` (${activeAdvancedCount})` : ''}</span>
+          </button>
         </div>
+
+        <StatusFilter value={statusFilter} onChange={setStatusFilter} />
+
+        {filtersOpen && (
+          <div className="pt-2 border-t border-border space-y-3">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              <Select
+                label="Congregação"
+                value={congregationFilter}
+                onChange={(e) => setCongregationFilter(e.target.value)}
+                options={congregationOptions}
+              />
+              <Select
+                label="Faixa etária e responsável"
+                value={ageFilter}
+                onChange={(e) => setAgeFilter(e.target.value as AgeFilter)}
+                options={[
+                  { value: 'all', label: 'Todas as idades' },
+                  { value: 'minor', label: 'Menores de 18 anos' },
+                  { value: 'adult', label: 'Adultos (18+ anos)' },
+                  { value: 'missing_guardian', label: 'Menores sem responsável' },
+                ]}
+              />
+              <Select
+                label="Alojamento"
+                value={residentFilter}
+                onChange={(e) => setResidentFilter(e.target.value as ResidentFilter)}
+                options={[
+                  { value: 'all', label: 'Internos e externos' },
+                  { value: 'yes', label: 'Somente internos' },
+                  { value: 'no', label: 'Somente não internos' },
+                ]}
+              />
+            </div>
+            {(activeAdvancedCount > 0 || search || statusFilter !== 'all') && (
+              <div className="flex justify-end">
+                <button
+                  type="button"
+                  onClick={clearAllFilters}
+                  className="inline-flex items-center gap-1 text-xs font-semibold text-primary-600 hover:text-primary-700 py-1 px-2 cursor-pointer"
+                >
+                  <X className="w-3.5 h-3.5" aria-hidden="true" />
+                  Limpar todos os filtros
+                </button>
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Results */}
@@ -177,34 +216,27 @@ export function ParticipantsPage() {
           ))}
         </div>
       ) : error ? (
-        <ErrorState message={error} onRetry={loadParticipants} />
+        <ErrorState message={error} onRetry={() => void refresh(true)} />
       ) : filteredParticipants.length === 0 ? (
-        search || statusFilter !== 'all' || congregationFilter !== 'all' || ageFilter !== 'all' || residentFilter !== 'all' ? (
-          <EmptyState
-            title="Nenhum participante encontrado"
-            description="Tente limpar ou alterar os filtros selecionados."
-          />
-        ) : (
-          <EmptyState
-            title="Nenhum participante cadastrado"
-            description="Comece cadastrando ou importando a lista de participantes do retiro."
-            icon={<UserPlus className="w-8 h-8 text-slate-400" />}
-            action={
-              writable ? (
-                <Link to="/participants/new">
-                  <button className="flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-sm">
-                    <Plus className="w-5 h-5 stroke-[2.5]" />
-                    Nova Inscrição
-                  </button>
-                </Link>
-              ) : undefined
-            }
-          />
-        )
+        <EmptyState
+          title="Nenhum participante encontrado"
+          description="Tente limpar os filtros ou ajustar o termo buscado."
+          action={
+            activeAdvancedCount > 0 || search || statusFilter !== 'all' ? (
+              <button
+                type="button"
+                onClick={clearAllFilters}
+                className="px-4 py-2 min-h-[40px] rounded-lg border border-border bg-white text-sm font-semibold text-text-primary hover:bg-surface-tertiary cursor-pointer"
+              >
+                Limpar filtros
+              </button>
+            ) : undefined
+          }
+        />
       ) : (
         <>
-          {/* Mobile & Tablet: High contrast spacious Cards */}
-          <div className="space-y-3 lg:hidden">
+          {/* Mobile & Tablet cards (semantic <article> — no nested <button> around <a>) */}
+          <div className="space-y-2.5 lg:hidden">
             {filteredParticipants.map((p) => {
               const age = calculateAgeAtRetreat(p.birth_date);
               const minor = isMinorAtRetreat(p.birth_date);
@@ -213,117 +245,140 @@ export function ParticipantsPage() {
               const waGuardian = buildWhatsAppUrl(p.guardian?.phone);
 
               return (
-                <Card key={p.id} hoverable onClick={() => navigate(`/participants/${p.id}`)} className="p-4 space-y-2.5">
+                <article
+                  key={p.id}
+                  className="bg-white rounded-xl border border-border p-4 space-y-3 shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+                >
                   <div className="flex items-start justify-between gap-3">
-                    <div className="flex items-center gap-3 min-w-0 flex-1">
-                      <div className="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 font-extrabold text-slate-800 text-base">
+                    <Link
+                      to={`/participants/${p.id}`}
+                      className="flex items-center gap-3 min-w-0 flex-1 group"
+                    >
+                      <div className="w-10 h-10 rounded-full bg-surface-tertiary border border-border flex items-center justify-center flex-shrink-0 font-bold text-text-primary text-sm">
                         {p.full_name.charAt(0).toUpperCase()}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <p className="text-base font-bold text-slate-900 truncate leading-snug">
+                        <h2 className="text-base font-semibold text-text-primary group-hover:text-primary-600 truncate leading-snug">
                           {p.full_name}
-                        </p>
-                        <p className="text-xs text-slate-500 font-medium truncate">
+                        </h2>
+                        <p className="text-xs text-text-secondary truncate">
                           {p.congregation || 'Congregação não informada'}
-                          {p.locality ? ` • ${p.locality}` : ''}
+                          {p.locality ? ` · ${p.locality}` : ''}
                         </p>
                       </div>
-                    </div>
+                    </Link>
                     <Badge status={p.status} />
                   </div>
 
                   <div className="flex flex-wrap items-center gap-1.5 text-xs">
                     {age !== null && (
-                      <span className={`font-semibold px-2 py-0.5 rounded-md ${minor ? 'bg-amber-50 text-amber-800 border border-amber-200' : 'bg-slate-100 text-slate-700'}`}>
-                        {age} anos {minor ? '(Menor)' : ''}
+                      <span
+                        className={`font-medium px-2 py-0.5 rounded-md tabular-nums ${
+                          minor
+                            ? 'bg-warning-light text-amber-900 border border-amber-200'
+                            : 'bg-surface-tertiary text-text-secondary'
+                        }`}
+                      >
+                        {age} anos{minor ? ' · Menor' : ''}
                       </span>
                     )}
                     {p.is_resident !== null && (
-                      <span className={`font-semibold px-2 py-0.5 rounded-md ${p.is_resident ? 'bg-indigo-50 text-indigo-700 border border-indigo-200' : 'bg-slate-100 text-slate-600'}`}>
+                      <span
+                        className={`font-medium px-2 py-0.5 rounded-md ${
+                          p.is_resident
+                            ? 'bg-primary-50 text-primary-700 border border-primary-200'
+                            : 'bg-surface-tertiary text-text-secondary'
+                        }`}
+                      >
                         {p.is_resident ? 'Interno' : 'Externo'}
                       </span>
                     )}
                     {p.shirt_purchased && (
-                      <span className="inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
-                        <Shirt className="w-3 h-3" />
-                        Camisa{p.shirt_size ? ` (${p.shirt_size})` : ''}
+                      <span className="inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-md bg-success-light text-success border border-emerald-200">
+                        <Shirt className="w-3 h-3" aria-hidden="true" />
+                        Camisa{p.shirt_size ? ` ${p.shirt_size}` : ''}
                       </span>
                     )}
                     {missingGuard && (
-                      <span className="inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-md bg-rose-50 text-rose-700 border border-rose-200">
-                        <ShieldAlert className="w-3 h-3" />
+                      <span className="inline-flex items-center gap-1 font-medium px-2 py-0.5 rounded-md bg-danger-light text-danger border border-red-200">
+                        <ShieldAlert className="w-3 h-3" aria-hidden="true" />
                         Sem responsável
                       </span>
                     )}
                   </div>
 
-                  {(waParticipant || waGuardian || p.guardian) && (
-                    <div className="flex items-center justify-between gap-2 pt-2 border-t border-slate-100 text-xs">
-                      <span className="text-slate-600 truncate">
-                        {p.guardian ? `Resp: ${p.guardian.full_name}` : 'Contato direto'}
-                      </span>
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        {waParticipant && (
-                          <a
-                            href={waParticipant}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-emerald-50 text-emerald-700 font-semibold border border-emerald-200 min-h-[36px]"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            Jovem
-                          </a>
-                        )}
-                        {waGuardian && (
-                          <a
-                            href={waGuardian}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-indigo-50 text-indigo-700 font-semibold border border-indigo-200 min-h-[36px]"
-                          >
-                            <MessageCircle className="w-3.5 h-3.5" />
-                            Resp.
-                          </a>
-                        )}
-                      </div>
+                  <div className="flex items-center justify-between gap-2 pt-2.5 border-t border-border/80">
+                    <Link
+                      to={`/participants/${p.id}`}
+                      className="text-xs font-semibold text-primary-600 hover:underline py-1.5"
+                    >
+                      Ver ficha completa
+                    </Link>
+
+                    <div className="flex items-center gap-2">
+                      {waParticipant && (
+                        <a
+                          href={waParticipant}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[40px] rounded-lg bg-success-light text-success border border-emerald-200 text-xs font-semibold"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Jovem</span>
+                        </a>
+                      )}
+                      {waGuardian && (
+                        <a
+                          href={waGuardian}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center gap-1.5 px-3 py-1.5 min-h-[40px] rounded-lg bg-primary-50 text-primary-700 border border-primary-200 text-xs font-semibold"
+                        >
+                          <MessageCircle className="w-3.5 h-3.5" aria-hidden="true" />
+                          <span>Responsável</span>
+                        </a>
+                      )}
                     </div>
-                  )}
-                </Card>
+                  </div>
+                </article>
               );
             })}
           </div>
 
           {/* Desktop Table View */}
-          <div className="hidden lg:block bg-white rounded-2xl border border-slate-200/90 overflow-hidden shadow-xs">
-            <table className="w-full text-left">
+          <div
+            role="region"
+            aria-label="Tabela de participantes"
+            tabIndex={0}
+            className="hidden lg:block bg-white rounded-xl border border-border overflow-x-auto shadow-[0_1px_2px_rgba(15,23,42,0.04)]"
+          >
+            <table className="w-full text-left border-collapse">
               <thead>
-                <tr className="border-b border-slate-200 bg-slate-50/80">
-                  <th className="text-xs font-bold text-slate-600 uppercase tracking-wider px-5 py-4">
+                <tr className="border-b border-border bg-surface-tertiary/60">
+                  <th className="text-xs font-semibold text-text-secondary px-5 py-3.5">
                     Participante
                   </th>
-                  <th className="text-xs font-bold text-slate-600 uppercase tracking-wider px-4 py-4">
+                  <th className="text-xs font-semibold text-text-secondary px-4 py-3.5">
                     Idade (06/02)
                   </th>
-                  <th className="text-xs font-bold text-slate-600 uppercase tracking-wider px-4 py-4">
-                    Congregação / Interno
+                  <th className="text-xs font-semibold text-text-secondary px-4 py-3.5">
+                    Congregação e alojamento
                   </th>
-                  <th className="text-xs font-bold text-slate-600 uppercase tracking-wider px-4 py-4">
+                  <th className="text-xs font-semibold text-text-secondary px-4 py-3.5">
                     Responsável
                   </th>
-                  <th className="text-xs font-bold text-slate-600 uppercase tracking-wider px-4 py-4">
+                  <th className="text-xs font-semibold text-text-secondary px-4 py-3.5">
                     Camisa
                   </th>
-                  <th className="text-xs font-bold text-slate-600 uppercase tracking-wider px-4 py-4">
+                  <th className="text-xs font-semibold text-text-secondary px-4 py-3.5">
                     WhatsApp
                   </th>
-                  <th className="text-xs font-bold text-slate-600 uppercase tracking-wider px-5 py-4 text-right">
-                    Status
+                  <th className="text-xs font-semibold text-text-secondary px-5 py-3.5 text-right">
+                    Situação
                   </th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100">
+              <tbody className="divide-y divide-border/80">
                 {filteredParticipants.map((p) => {
                   const age = calculateAgeAtRetreat(p.birth_date);
                   const minor = isMinorAtRetreat(p.birth_date);
@@ -331,62 +386,62 @@ export function ParticipantsPage() {
                   const waGuardian = buildWhatsAppUrl(p.guardian?.phone);
 
                   return (
-                    <tr
-                      key={p.id}
-                      onClick={() => navigate(`/participants/${p.id}`)}
-                      className="hover:bg-slate-50/80 cursor-pointer transition-colors duration-150"
-                    >
-                      <td className="px-5 py-4">
-                        <div className="flex items-center gap-3">
-                          <div className="w-9 h-9 rounded-full bg-slate-100 border border-slate-200 font-bold text-slate-700 text-sm flex items-center justify-center">
+                    <tr key={p.id} className="hover:bg-surface-secondary transition-colors">
+                      <td className="px-5 py-3.5">
+                        <Link to={`/participants/${p.id}`} className="flex items-center gap-3 group">
+                          <div className="w-9 h-9 rounded-full bg-surface-tertiary border border-border font-semibold text-text-primary text-sm flex items-center justify-center flex-shrink-0">
                             {p.full_name.charAt(0).toUpperCase()}
                           </div>
-                          <div>
-                            <p className="text-sm font-bold text-slate-900">{p.full_name}</p>
-                            <p className="text-xs text-slate-500 font-medium">
-                              {p.protocol ? `Prot. ${p.protocol}` : p.locality || p.email || '—'}
+                          <div className="min-w-0">
+                            <p className="text-sm font-semibold text-text-primary group-hover:text-primary-600 truncate">
+                              {p.full_name}
+                            </p>
+                            <p className="text-xs text-text-tertiary tabular-nums">
+                              {p.protocol ? `Protocolo ${p.protocol}` : p.locality || p.email || '—'}
                             </p>
                           </div>
-                        </div>
+                        </Link>
                       </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-slate-700">
+                      <td className="px-4 py-3.5 text-sm tabular-nums text-text-primary">
                         {age !== null ? (
-                          <span className={minor ? 'text-amber-700' : ''}>
-                            {age} anos {minor ? '(Menor)' : ''}
+                          <span className={minor ? 'text-amber-800 font-semibold' : ''}>
+                            {age} anos{minor ? ' (Menor)' : ''}
                           </span>
                         ) : (
                           '—'
                         )}
                       </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-slate-600">
-                        <p>{p.congregation ?? '—'}</p>
+                      <td className="px-4 py-3.5 text-sm text-text-secondary">
+                        <p className="text-text-primary font-medium">{p.congregation ?? '—'}</p>
                         {p.is_resident !== null && (
-                          <span className="text-xs text-slate-400">
-                            {p.is_resident ? 'Interno' : 'Não interno'}
+                          <span className="text-xs text-text-tertiary">
+                            {p.is_resident ? 'Ficará interno' : 'Externo'}
                           </span>
                         )}
                       </td>
-                      <td className="px-4 py-4 text-sm font-semibold text-slate-700">
-                        {p.guardian?.full_name ?? (minor ? <span className="text-rose-600">Sem responsável</span> : '—')}
+                      <td className="px-4 py-3.5 text-sm text-text-secondary">
+                        {p.guardian?.full_name ??
+                          (minor ? <span className="text-danger font-medium">Sem responsável</span> : '—')}
                       </td>
-                      <td className="px-4 py-4 text-xs font-bold">
+                      <td className="px-4 py-3.5 text-xs font-semibold">
                         {p.shirt_purchased ? (
-                          <span className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 border border-emerald-200">
+                          <span className="px-2.5 py-1 rounded-md bg-success-light text-success border border-emerald-200">
                             Sim{p.shirt_size ? ` (${p.shirt_size})` : ''}
                           </span>
                         ) : (
-                          <span className="px-2 py-1 rounded-md bg-slate-100 text-slate-600">Não</span>
+                          <span className="px-2.5 py-1 rounded-md bg-surface-tertiary text-text-secondary">
+                            Não
+                          </span>
                         )}
                       </td>
-                      <td className="px-4 py-4">
+                      <td className="px-4 py-3.5">
                         <div className="flex items-center gap-1.5">
                           {waParticipant && (
                             <a
                               href={waParticipant}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-2 py-1 rounded-md bg-emerald-50 text-emerald-700 text-xs font-semibold hover:bg-emerald-100"
+                              className="px-2.5 py-1.5 rounded-md bg-success-light text-success text-xs font-semibold hover:bg-emerald-100"
                             >
                               Jovem
                             </a>
@@ -396,15 +451,14 @@ export function ParticipantsPage() {
                               href={waGuardian}
                               target="_blank"
                               rel="noopener noreferrer"
-                              onClick={(e) => e.stopPropagation()}
-                              className="px-2 py-1 rounded-md bg-indigo-50 text-indigo-700 text-xs font-semibold hover:bg-indigo-100"
+                              className="px-2.5 py-1.5 rounded-md bg-primary-50 text-primary-700 text-xs font-semibold hover:bg-primary-100"
                             >
-                              Resp.
+                              Responsável
                             </a>
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-right">
+                      <td className="px-5 py-3.5 text-right">
                         <Badge status={p.status} />
                       </td>
                     </tr>

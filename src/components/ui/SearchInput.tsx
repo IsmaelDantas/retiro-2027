@@ -21,7 +21,7 @@ export function SearchInput({
         placeholder={placeholder}
         className="w-full pl-11 pr-10 py-3 rounded-xl border border-slate-300/90 bg-white text-base
                    font-medium text-slate-900 placeholder:text-slate-400 shadow-2xs
-                   focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500
+                   focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500
                    hover:border-slate-400 transition-all duration-150"
         aria-label={placeholder}
       />
