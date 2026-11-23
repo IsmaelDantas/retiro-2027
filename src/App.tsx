@@ -34,6 +34,9 @@ const ReportsPage = lazy(() =>
 const ProfilePage = lazy(() =>
   import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage }))
 );
+const UsersPage = lazy(() =>
+  import('./pages/UsersPage').then((m) => ({ default: m.UsersPage }))
+);
 
 function RouteFallback() {
   return (
@@ -71,6 +74,7 @@ export default function App() {
                   <Route path="/payments" element={<PaymentsPage />} />
                   <Route path="/import" element={<ImportPage />} />
                   <Route path="/reports" element={<ReportsPage />} />
+                  <Route path="/users" element={<UsersPage />} />
                   <Route path="/profile" element={<ProfilePage />} />
                 </Route>
 

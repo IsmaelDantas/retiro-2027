@@ -8,12 +8,13 @@ import {
   FileBarChart,
   MoreHorizontal,
   UserPlus,
+  UserCog,
   User,
   LogOut,
   Download,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { canManageData, getRoleLabel } from '../../utils/permissions';
+import { canManageData, canManageUsers, getRoleLabel } from '../../utils/permissions';
 import { Modal } from '../ui/Modal';
 import { usePwaInstall } from '../pwa/PwaStatusBar';
 
@@ -26,6 +27,7 @@ export function BottomNav() {
 
   const [moreOpen, setMoreOpen] = useState(false);
   const writable = canManageData(profile?.role);
+  const manageUsers = canManageUsers(profile?.role);
 
   const primaryTabs = [
     { to: '/dashboard', label: 'Painel', icon: LayoutDashboard },
@@ -38,6 +40,7 @@ export function BottomNav() {
 
   const isMoreActive =
     pathname.startsWith('/reports') ||
+    pathname.startsWith('/users') ||
     pathname.startsWith('/profile') ||
     pathname === '/participants/new';
 
@@ -118,6 +121,17 @@ export function BottomNav() {
             <FileBarChart className="w-5 h-5 text-text-secondary" aria-hidden="true" />
             <span>Relatórios e exportação CSV</span>
           </button>
+
+          {manageUsers && (
+            <button
+              type="button"
+              onClick={() => handleNavigate('/users')}
+              className="flex items-center gap-3 w-full px-3.5 py-3 min-h-[44px] rounded-xl text-sm font-medium text-text-primary hover:bg-surface-tertiary cursor-pointer"
+            >
+              <UserCog className="w-5 h-5 text-text-secondary" aria-hidden="true" />
+              <span>Equipe e Contas</span>
+            </button>
+          )}
 
           <button
             type="button"

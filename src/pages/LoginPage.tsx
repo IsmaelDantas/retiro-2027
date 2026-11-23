@@ -4,12 +4,13 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Input } from '../components/ui/Input';
 import { Button } from '../components/ui/Button';
+import { toAuthEmail } from '../utils/username';
 
 export function LoginPage() {
   const { signIn, user, loading: authLoading } = useAuth();
   const navigate = useNavigate();
 
-  const [email, setEmail] = useState('');
+  const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState('');
@@ -31,19 +32,19 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
 
-    if (!email.trim() || !password.trim()) {
-      setError('Informe seu e-mail e sua senha para entrar.');
+    if (!identifier.trim() || !password.trim()) {
+      setError('Informe seu nome de usuário e sua senha para entrar.');
       return;
     }
 
     setLoading(true);
     try {
-      await signIn(email.trim(), password);
+      await signIn(toAuthEmail(identifier), password);
       navigate('/dashboard', { replace: true });
     } catch (err) {
       const message =
         err instanceof Error && err.message.includes('Invalid login')
-          ? 'E-mail ou senha incorretos. Confira seus dados e tente novamente.'
+          ? 'Usuário ou senha incorretos. Confira seus dados e tente novamente.'
           : 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.';
       setError(message);
     } finally {
@@ -83,14 +84,15 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="E-mail"
-              name="email"
-              type="email"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="nome@exemplo.com"
+              label="Nome de usuário"
+              name="username"
+              type="text"
+              value={identifier}
+              onChange={(e) => setIdentifier(e.target.value)}
+              placeholder="ex.: claudejan"
               required
-              autoComplete="email"
+              autoComplete="username"
+              autoCapitalize="none"
               spellCheck={false}
             />
 
