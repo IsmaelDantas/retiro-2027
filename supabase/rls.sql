@@ -41,6 +41,11 @@ BEGIN
     RAISE EXCEPTION 'Somente administradores podem alterar o e-mail de perfil.';
   END IF;
 
+  IF NEW.username IS DISTINCT FROM OLD.username
+     AND private.current_user_role() IS DISTINCT FROM 'admin' THEN
+    RAISE EXCEPTION 'Somente administradores podem alterar o nome de usuário.';
+  END IF;
+
   RETURN NEW;
 END;
 $$;
@@ -140,9 +145,13 @@ ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 -- =============================================
 DROP POLICY IF EXISTS "Users can read own profile" ON public.users;
 DROP POLICY IF EXISTS "Users or admins can read profiles" ON public.users;
-CREATE POLICY "Users or admins can read profiles"
+DROP POLICY IF EXISTS "Users, coordinators, or admins can read profiles" ON public.users;
+CREATE POLICY "Users, coordinators, or admins can read profiles"
   ON public.users FOR SELECT TO authenticated
-  USING ((SELECT auth.uid()) = id OR (SELECT private.current_user_role()) = 'admin');
+  USING (
+    (SELECT auth.uid()) = id
+    OR (SELECT private.current_user_role()) IN ('admin', 'coordinator')
+  );
 
 DROP POLICY IF EXISTS "Users can update own profile" ON public.users;
 DROP POLICY IF EXISTS "Users or admins can update profiles" ON public.users;

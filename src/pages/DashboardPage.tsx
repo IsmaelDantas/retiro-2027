@@ -1,20 +1,19 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import {
   Users,
   Home,
   ShieldAlert,
   Shirt,
-  Plus,
   ChevronRight,
   Upload,
-  TrendingUp,
   MapPin,
   MessageCircle,
   UserCheck,
+  UserPlus,
 } from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
-import { fetchParticipants } from '../services/participants';
+import { useParticipantsData } from '../contexts/ParticipantsDataContext';
 import { Card } from '../components/ui/Card';
 import { Badge } from '../components/ui/Badge';
 import { StatCardSkeleton, CardSkeleton } from '../components/ui/Skeleton';
@@ -24,81 +23,54 @@ import { formatDate } from '../utils/date';
 import { canManageData } from '../utils/permissions';
 import { computeCoordinatorMetrics } from '../utils/dashboardMetrics';
 import { buildWhatsAppUrl } from '../utils/phone';
-import type { ParticipantWithGuardian } from '../types/database';
 
 export function DashboardPage() {
   const { profile, user } = useAuth();
-  const navigate = useNavigate();
+  const { participants, loading, error, refresh } = useParticipantsData();
   const writable = canManageData(profile?.role);
-
-  const [participants, setParticipants] = useState<ParticipantWithGuardian[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
 
   const displayName = profile?.name || user?.email?.split('@')[0] || 'Coordenador';
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    setError(null);
-    try {
-      const data = await fetchParticipants();
-      setParticipants(data);
-    } catch {
-      setError('Não foi possível carregar os dados do painel.');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    void loadData();
-  }, [loadData]);
-
   const metrics = useMemo(() => computeCoordinatorMetrics(participants), [participants]);
-  const recentParticipants = useMemo(() => participants.slice(0, 5), [participants]);
+  const recentParticipants = useMemo(() => participants.slice(0, 6), [participants]);
   const maxCongCount = metrics.byCongregation[0]?.count ?? 1;
-  const maxDailyCount = Math.max(1, ...metrics.dailyEvolution.map((d) => d.count));
 
   return (
     <div className="space-y-6">
-      {/* Header & Quick Actions */}
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white p-5 sm:p-6 rounded-2xl border border-slate-200/90 shadow-xs">
+      {/* Intro & Primary Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
-          <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
-            Retiro 2027 — Coordenação
+          <h1 className="text-xl sm:text-2xl font-bold text-text-primary tracking-tight">
+            Resumo do Retiro
           </h1>
-          <p className="text-sm sm:text-base font-medium text-slate-600 mt-1">
-            Olá, <span className="font-bold text-slate-900">{displayName}</span>! Acompanhe os inscritos pelo celular.
+          <p className="text-sm text-text-secondary mt-0.5">
+            Olá, {displayName}. Visão geral das inscrições para 6 a 9 de fevereiro de 2027.
           </p>
         </div>
 
         {writable && (
-          <div className="flex flex-col sm:flex-row gap-2.5 w-full sm:w-auto">
-            <Link to="/import" className="w-full sm:w-auto">
-              <button
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-4 py-3 rounded-xl
-                           bg-slate-100 hover:bg-slate-200 text-slate-800 font-bold text-sm
-                           transition-all duration-150 cursor-pointer min-h-[44px]"
-              >
-                <Upload className="w-4 h-4 stroke-[2.3]" />
-                Importar CSV
-              </button>
+          <div className="flex items-center gap-2.5 flex-wrap">
+            <Link
+              to="/import"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg
+                         border border-border bg-white hover:bg-surface-tertiary text-text-primary text-sm font-semibold transition-colors"
+            >
+              <Upload className="w-4 h-4 text-text-secondary" aria-hidden="true" />
+              <span>Importar CSV</span>
             </Link>
-            <Link to="/participants/new" className="w-full sm:w-auto">
-              <button
-                className="w-full sm:w-auto flex items-center justify-center gap-2 px-5 py-3 rounded-xl
-                           bg-indigo-600 hover:bg-indigo-700 active:scale-[0.98] text-white font-bold text-sm
-                           shadow-md shadow-indigo-600/20 transition-all duration-150 cursor-pointer min-h-[44px]"
-              >
-                <Plus className="w-4 h-4 stroke-[2.5]" />
-                Nova Inscrição
-              </button>
+            <Link
+              to="/participants/new"
+              className="inline-flex items-center justify-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg
+                         bg-primary-600 hover:bg-primary-700 text-white text-sm font-semibold transition-colors"
+            >
+              <UserPlus className="w-4 h-4" aria-hidden="true" />
+              <span>Nova inscrição</span>
             </Link>
           </div>
         )}
       </div>
 
-      {/* Main Stats Grid */}
+      {/* Main Stats Strip */}
       {loading ? (
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
           {Array.from({ length: 4 }).map((_, i) => (
@@ -106,258 +78,227 @@ export function DashboardPage() {
           ))}
         </div>
       ) : error ? (
-        <ErrorState message={error} onRetry={loadData} />
+        <ErrorState message={error} onRetry={() => void refresh(true)} />
       ) : (
         <>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-3.5">
-            <Card className="p-4 sm:p-5 flex flex-col justify-between min-h-[120px]">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                  <Users className="w-5 h-5 text-indigo-600 stroke-[2.2]" />
-                </div>
-                <span className="text-3xl font-black text-slate-900">{metrics.active}</span>
+          <section aria-label="Indicadores principais" className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            <Card className="p-4">
+              <div className="flex items-center justify-between text-text-secondary">
+                <span className="text-xs font-medium">Inscritos ativos</span>
+                <Users className="w-4 h-4 text-primary-600" aria-hidden="true" />
               </div>
-              <div className="mt-3">
-                <p className="text-xs sm:text-sm font-bold text-slate-700">Inscritos Ativos</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {metrics.confirmed} conf. • {metrics.pending} pend.{metrics.cancelled > 0 ? ` • ${metrics.cancelled} canc.` : ''}
-                </p>
-              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-text-primary tabular-nums mt-2">
+                {metrics.active}
+              </p>
+              <p className="text-xs text-text-tertiary mt-1">
+                {metrics.confirmed} confirmados · {metrics.pending} pendentes
+                {metrics.cancelled > 0 ? ` · ${metrics.cancelled} cancelados` : ''}
+              </p>
             </Card>
 
-            <Card className="p-4 sm:p-5 flex flex-col justify-between min-h-[120px]">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-emerald-50 border border-emerald-100 flex items-center justify-center">
-                  <Home className="w-5 h-5 text-emerald-600 stroke-[2.2]" />
-                </div>
-                <span className="text-3xl font-black text-slate-900">{metrics.residents}</span>
+            <Card className="p-4">
+              <div className="flex items-center justify-between text-text-secondary">
+                <span className="text-xs font-medium">Ficarão internos</span>
+                <Home className="w-4 h-4 text-success" aria-hidden="true" />
               </div>
-              <div className="mt-3">
-                <p className="text-xs sm:text-sm font-bold text-slate-700">Internos (Alojamento)</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {metrics.nonResidents} não interno(s){metrics.residenceUnknown > 0 ? ` • ${metrics.residenceUnknown} s/ info` : ''}
-                </p>
-              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-text-primary tabular-nums mt-2">
+                {metrics.residents}
+              </p>
+              <p className="text-xs text-text-tertiary mt-1">
+                {metrics.nonResidents} externos
+                {metrics.residenceUnknown > 0 ? ` · ${metrics.residenceUnknown} sem resposta` : ''}
+              </p>
             </Card>
 
-            <Card className="p-4 sm:p-5 flex flex-col justify-between min-h-[120px]">
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-amber-50 border border-amber-100 flex items-center justify-center">
-                  <UserCheck className="w-5 h-5 text-amber-600 stroke-[2.2]" />
-                </div>
-                <span className="text-3xl font-black text-slate-900">{metrics.minors}</span>
+            <Card className="p-4">
+              <div className="flex items-center justify-between text-text-secondary">
+                <span className="text-xs font-medium">Menores de 18 anos</span>
+                <UserCheck className="w-4 h-4 text-warning" aria-hidden="true" />
               </div>
-              <div className="mt-3">
-                <p className="text-xs sm:text-sm font-bold text-slate-700">Menores (&lt; 18 anos)</p>
-                <p className="text-[11px] text-slate-500 mt-0.5">
-                  {metrics.adults} adulto(s) em 06/02/2027
-                </p>
-              </div>
+              <p className="text-2xl sm:text-3xl font-bold text-text-primary tabular-nums mt-2">
+                {metrics.minors}
+              </p>
+              <p className="text-xs text-text-tertiary mt-1">
+                {metrics.adults} adultos (data-base 06/02/2027)
+              </p>
             </Card>
 
-            <Card
-              hoverable
-              onClick={() => navigate('/payments')}
-              className="p-4 sm:p-5 flex flex-col justify-between min-h-[120px] border-indigo-100"
+            <Link
+              to="/payments"
+              className="block rounded-xl focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
             >
-              <div className="flex items-center justify-between">
-                <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center">
-                  <Shirt className="w-5 h-5 text-indigo-600 stroke-[2.2]" />
+              <Card className="p-4 h-full hover:border-primary-300 transition-colors">
+                <div className="flex items-center justify-between text-text-secondary">
+                  <span className="text-xs font-medium">Camisas confirmadas</span>
+                  <Shirt className="w-4 h-4 text-primary-600" aria-hidden="true" />
                 </div>
-                <span className="text-3xl font-black text-slate-900">{metrics.shirtsPurchased}</span>
-              </div>
-              <div className="mt-3">
-                <p className="text-xs sm:text-sm font-bold text-slate-700">Camisas Confirmadas</p>
-                <p className="text-[11px] text-indigo-600 font-semibold mt-0.5 flex items-center gap-1">
-                  {metrics.shirtsNotPurchased} pendente(s) • Abrir lista
-                  <ChevronRight className="w-3.5 h-3.5" />
+                <p className="text-2xl sm:text-3xl font-bold text-text-primary tabular-nums mt-2">
+                  {metrics.shirtsPurchased}
                 </p>
-              </div>
-            </Card>
-          </div>
+                <p className="text-xs font-medium text-primary-600 mt-1 inline-flex items-center gap-1">
+                  <span>{metrics.shirtsNotPurchased} pendentes · Abrir lista</span>
+                  <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                </p>
+              </Card>
+            </Link>
+          </section>
 
           {/* Minors missing guardian alert */}
           {metrics.minorsWithoutGuardian.length > 0 && (
-            <Card
-              hoverable
-              onClick={() => navigate('/participants?age=missing_guardian')}
-              className="p-4 border-rose-200 bg-rose-50/70"
+            <Link
+              to="/participants?age=missing_guardian"
+              className="flex items-center justify-between gap-3 p-4 rounded-xl bg-danger-light border border-danger/25 hover:border-danger/50 transition-colors"
             >
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-start gap-3">
-                  <ShieldAlert className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h2 className="text-sm font-bold text-rose-900">
-                      {metrics.minorsWithoutGuardian.length} menor(es) sem responsável completo
-                    </h2>
-                    <p className="text-xs text-rose-800 mt-0.5">
-                      Toque para conferir os menores de 18 anos que precisam de nome e WhatsApp do responsável.
-                    </p>
-                  </div>
+              <div className="flex items-start gap-3">
+                <ShieldAlert className="w-5 h-5 text-danger flex-shrink-0 mt-0.5" aria-hidden="true" />
+                <div>
+                  <p className="text-sm font-semibold text-text-primary">
+                    {metrics.minorsWithoutGuardian.length} menor(es) sem dados completos do responsável
+                  </p>
+                  <p className="text-xs text-text-secondary mt-0.5">
+                    Toque para visualizar os menores de 18 anos que precisam de nome e WhatsApp do responsável.
+                  </p>
                 </div>
-                <ChevronRight className="w-5 h-5 text-rose-600 flex-shrink-0" />
               </div>
-            </Card>
+              <ChevronRight className="w-5 h-5 text-danger flex-shrink-0" aria-hidden="true" />
+            </Link>
           )}
 
-          {/* Congregation breakdown & Daily evolution */}
-          {metrics.active > 0 && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-              <Card className="p-5 space-y-3">
+          {/* Congregation Breakdown & Recent Registrations */}
+          {metrics.active === 0 ? (
+            <EmptyState
+              title="Nenhuma inscrição cadastrada"
+              description={
+                writable
+                  ? 'Importe o arquivo CSV exportado do site da igreja ou cadastre o primeiro participante.'
+                  : 'Nenhum participante cadastrado no momento.'
+              }
+              action={
+                writable ? (
+                  <Link
+                    to="/import"
+                    className="inline-flex items-center gap-2 px-4 py-2.5 min-h-[44px] rounded-lg bg-primary-600 text-white font-semibold text-sm"
+                  >
+                    <Upload className="w-4 h-4" aria-hidden="true" />
+                    Importar CSV da igreja
+                  </Link>
+                ) : undefined
+              }
+            />
+          ) : (
+            <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-start">
+              {/* Left 5 cols: Congregations */}
+              <Card className="lg:col-span-5 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <MapPin className="w-4 h-4 text-indigo-600" />
-                    Inscritos por Congregação
+                  <h2 className="text-sm font-bold text-text-primary flex items-center gap-2">
+                    <MapPin className="w-4 h-4 text-primary-600" aria-hidden="true" />
+                    Inscritos por congregação
                   </h2>
-                  <span className="text-xs text-slate-500">{metrics.byCongregation.length} origem(ns)</span>
+                  <span className="text-xs text-text-tertiary tabular-nums">
+                    {metrics.byCongregation.length} origem(ns)
+                  </span>
                 </div>
-                <div className="space-y-2.5 max-h-64 overflow-y-auto pr-1">
+
+                <div className="divide-y divide-border/70 max-h-80 overflow-y-auto">
                   {metrics.byCongregation.map((item) => (
-                    <div key={item.congregation} className="space-y-1">
-                      <div className="flex items-center justify-between text-xs">
-                        <span className="font-semibold text-slate-700 truncate pr-2">
+                    <Link
+                      key={item.congregation}
+                      to={`/participants?congregation=${encodeURIComponent(item.congregation)}`}
+                      className="block py-2.5 first:pt-1 last:pb-1 hover:bg-surface-secondary/80 rounded-lg px-1.5 -mx-1.5 transition-colors"
+                    >
+                      <div className="flex items-center justify-between text-xs mb-1">
+                        <span className="font-medium text-text-primary truncate pr-2">
                           {item.congregation}
                         </span>
-                        <span className="font-bold text-slate-900">{item.count}</span>
+                        <span className="font-bold text-text-primary tabular-nums">{item.count}</span>
                       </div>
-                      <div className="w-full h-2 rounded-full bg-slate-100 overflow-hidden">
+                      <div className="w-full h-1.5 rounded-full bg-surface-tertiary overflow-hidden">
                         <div
-                          className="h-full bg-indigo-600 rounded-full"
-                          style={{ width: `${Math.max(8, Math.round((item.count / maxCongCount) * 100))}%` }}
+                          className="h-full bg-primary-600 rounded-full"
+                          style={{
+                            width: `${Math.max(6, Math.round((item.count / maxCongCount) * 100))}%`,
+                          }}
                         />
                       </div>
-                    </div>
+                    </Link>
                   ))}
                 </div>
               </Card>
 
-              <Card className="p-5 space-y-3">
+              {/* Right 7 cols: Recent Registrations */}
+              <Card className="lg:col-span-7 space-y-3">
                 <div className="flex items-center justify-between">
-                  <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-                    <TrendingUp className="w-4 h-4 text-emerald-600" />
-                    Evolução Diária de Inscrições
-                  </h2>
-                  <span className="text-xs text-slate-500">Últimos {metrics.dailyEvolution.length} dia(s)</span>
+                  <h2 className="text-sm font-bold text-text-primary">Últimas inscrições</h2>
+                  <Link
+                    to="/participants"
+                    className="text-xs font-semibold text-primary-600 hover:underline inline-flex items-center gap-1 py-1"
+                  >
+                    Ver lista completa
+                    <ChevronRight className="w-3.5 h-3.5" aria-hidden="true" />
+                  </Link>
                 </div>
-                {metrics.dailyEvolution.length === 0 ? (
-                  <p className="text-xs text-slate-500">Sem datas registradas ainda.</p>
-                ) : (
-                  <div className="space-y-2">
-                    {metrics.dailyEvolution.map((day) => (
-                      <div key={day.date} className="flex items-center gap-3 text-xs">
-                        <span className="w-12 font-mono font-semibold text-slate-600">{day.label}</span>
-                        <div className="flex-1 h-2.5 rounded-full bg-slate-100 overflow-hidden">
-                          <div
-                            className="h-full bg-emerald-500 rounded-full"
-                            style={{ width: `${Math.max(8, Math.round((day.count / maxDailyCount) * 100))}%` }}
-                          />
+
+                <div className="divide-y divide-border">
+                  {recentParticipants.map((participant) => {
+                    const waUrl = buildWhatsAppUrl(participant.phone);
+                    return (
+                      <div
+                        key={participant.id}
+                        className="py-3 first:pt-1 last:pb-1 flex items-center justify-between gap-3"
+                      >
+                        <Link
+                          to={`/participants/${participant.id}`}
+                          className="flex items-center gap-3 min-w-0 flex-1 group"
+                        >
+                          <div className="w-9 h-9 rounded-full bg-surface-tertiary border border-border flex items-center justify-center flex-shrink-0 font-semibold text-text-primary text-sm">
+                            {participant.full_name.charAt(0).toUpperCase()}
+                          </div>
+                          <div className="min-w-0 flex-1">
+                            <p className="text-sm font-semibold text-text-primary group-hover:text-primary-600 truncate">
+                              {participant.full_name}
+                            </p>
+                            <p className="text-xs text-text-tertiary truncate">
+                              {participant.congregation || 'Congregação não informada'}
+                              {participant.guardian ? ` · Responsável: ${participant.guardian.full_name}` : ''}
+                            </p>
+                          </div>
+                        </Link>
+
+                        <div className="flex items-center gap-2 flex-shrink-0">
+                          {waUrl && (
+                            <a
+                              href={waUrl}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              aria-label={`Abrir WhatsApp de ${participant.full_name}`}
+                              title="Conversar no WhatsApp"
+                              className="w-10 h-10 rounded-lg bg-success-light text-success hover:bg-emerald-100 border border-emerald-200 inline-flex items-center justify-center transition-colors"
+                            >
+                              <MessageCircle className="w-4 h-4" aria-hidden="true" />
+                            </a>
+                          )}
+                          <div className="hidden sm:flex flex-col items-end gap-1">
+                            <Badge status={participant.status} />
+                            <span className="text-[11px] text-text-tertiary tabular-nums">
+                              {formatDate(participant.registered_at ?? participant.created_at)}
+                            </span>
+                          </div>
                         </div>
-                        <span className="w-6 text-right font-bold text-slate-800">{day.count}</span>
                       </div>
-                    ))}
-                  </div>
-                )}
+                    );
+                  })}
+                </div>
               </Card>
             </div>
           )}
         </>
       )}
 
-      {/* Recent Registrations */}
-      {!error && (
-        <div className="space-y-3.5">
-          <div className="flex items-center justify-between px-1">
-            <h2 className="text-lg font-bold text-slate-900">Inscrições Recentes</h2>
-            {recentParticipants.length > 0 && (
-              <Link
-                to="/participants"
-                className="text-sm font-bold text-indigo-600 hover:text-indigo-700 flex items-center gap-1 hover:underline"
-              >
-                Ver todos
-                <ChevronRight className="w-4 h-4 stroke-[2.5]" />
-              </Link>
-            )}
-          </div>
-
-          {loading ? (
-            <div className="space-y-3">
-              {Array.from({ length: 3 }).map((_, i) => (
-                <CardSkeleton key={i} />
-              ))}
-            </div>
-          ) : recentParticipants.length === 0 ? (
-            <EmptyState
-              title="Nenhuma inscrição ainda"
-              description={
-                writable
-                  ? 'Cadastre um participante ou importe o CSV exportado do site da igreja.'
-                  : 'Nenhum participante cadastrado no sistema até o momento.'
-              }
-              action={
-                writable ? (
-                  <Link to="/import">
-                    <button className="flex items-center gap-2 px-4 py-2.5 rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-sm">
-                      <Upload className="w-4 h-4" />
-                      Importar CSV
-                    </button>
-                  </Link>
-                ) : undefined
-              }
-            />
-          ) : (
-            <div className="space-y-3">
-              {recentParticipants.map((participant) => {
-                const waUrl = buildWhatsAppUrl(participant.phone);
-                return (
-                  <Card
-                    key={participant.id}
-                    hoverable
-                    onClick={() => navigate(`/participants/${participant.id}`)}
-                    className="p-4 sm:p-5"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="flex items-center gap-3.5 min-w-0 flex-1">
-                        <div className="w-11 h-11 rounded-full bg-slate-100 border border-slate-200 flex items-center justify-center flex-shrink-0 font-extrabold text-slate-700 text-base">
-                          {participant.full_name.charAt(0).toUpperCase()}
-                        </div>
-                        <div className="min-w-0 flex-1">
-                          <p className="text-base font-bold text-slate-900 truncate leading-snug">
-                            {participant.full_name}
-                          </p>
-                          <p className="text-xs text-slate-500 font-medium truncate mt-0.5">
-                            {participant.congregation || 'Sem congregação'}
-                            {participant.guardian ? ` • Resp: ${participant.guardian.full_name}` : ''}
-                          </p>
-                        </div>
-                      </div>
-
-                      <div className="flex items-center gap-2 flex-shrink-0">
-                        {waUrl && (
-                          <a
-                            href={waUrl}
-                            target="_blank"
-                            rel="noopener noreferrer"
-                            onClick={(e) => e.stopPropagation()}
-                            className="p-2.5 rounded-xl bg-emerald-50 text-emerald-700 hover:bg-emerald-100 border border-emerald-200"
-                            aria-label={`Abrir WhatsApp de ${participant.full_name}`}
-                            title="Abrir WhatsApp"
-                          >
-                            <MessageCircle className="w-4 h-4" />
-                          </a>
-                        )}
-                        <div className="flex flex-col items-end gap-1.5">
-                          <Badge status={participant.status} />
-                          <span className="text-[11px] font-medium text-slate-400 whitespace-nowrap">
-                            {formatDate(participant.registered_at ?? participant.created_at)}
-                          </span>
-                        </div>
-                      </div>
-                    </div>
-                  </Card>
-                );
-              })}
-            </div>
-          )}
+      {loading && (
+        <div className="space-y-3">
+          {Array.from({ length: 3 }).map((_, i) => (
+            <CardSkeleton key={i} />
+          ))}
         </div>
       )}
     </div>

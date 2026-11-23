@@ -1,11 +1,24 @@
-import { useEffect, useState } from 'react';
-import { LogOut, User as UserIcon, Mail, Calendar, ShieldCheck, History } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link } from 'react-router-dom';
+import {
+  LogOut,
+  User as UserIcon,
+  Mail,
+  Calendar,
+  ShieldCheck,
+  History,
+  KeyRound,
+  Users,
+} from 'lucide-react';
 import { useAuth } from '../contexts/AuthContext';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
+import { Input } from '../components/ui/Input';
 import { useToast } from '../contexts/ToastContext';
+import { updateOwnPassword } from '../services/auth';
 import { formatDate, formatDateTime } from '../utils/date';
-import { canManageData, getRoleLabel } from '../utils/permissions';
+import { canManageData, canManageUsers, getRoleLabel } from '../utils/permissions';
+import { formatUserHandle, USERNAME_EMAIL_DOMAIN } from '../utils/username';
 import { fetchAuditLogs } from '../services/audit';
 import type { AuditLog } from '../types/database';
 
@@ -24,8 +37,21 @@ export function ProfilePage() {
   const [auditLoading, setAuditLoading] = useState(true);
   const [auditError, setAuditError] = useState(false);
 
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
+
   const displayName = profile?.name || user?.email?.split('@')[0] || 'Usuário';
   const writable = canManageData(profile?.role);
+  const canUsers = canManageUsers(profile?.role);
+  const userHandle = profile
+    ? formatUserHandle(profile)
+    : user?.email
+      ? formatUserHandle({ email: user.email })
+      : '';
+  const hasRealEmail = Boolean(
+    user?.email && !user.email.endsWith(`@${USERNAME_EMAIL_DOMAIN}`)
+  );
 
   useEffect(() => {
     let active = true;
@@ -52,9 +78,40 @@ export function ProfilePage() {
     }
   };
 
+  const handlePasswordChange = async (e: FormEvent) => {
+    e.preventDefault();
+    if (newPassword.length < 6) {
+      showToast('A nova senha precisa ter pelo menos 6 caracteres.', 'error');
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      showToast('As senhas digitadas não coincidem.', 'error');
+      return;
+    }
+
+    setSavingPassword(true);
+    try {
+      await updateOwnPassword(newPassword);
+      setNewPassword('');
+      setConfirmPassword('');
+      showToast('Sua senha foi alterada com sucesso.');
+    } catch {
+      showToast('Não foi possível atualizar a senha agora.', 'error');
+    } finally {
+      setSavingPassword(false);
+    }
+  };
+
   return (
-    <div className="space-y-6">
-      <h1 className="text-xl font-bold text-text-primary">Perfil e Auditoria</h1>
+    <div className="space-y-5">
+      <div className="space-y-1">
+        <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+          Perfil e Auditoria
+        </h1>
+        <p className="text-sm text-slate-500">
+          Sua conta de acesso, nível de permissão e histórico recente de alterações.
+        </p>
+      </div>
 
       {/* User Info */}
       <Card className="space-y-4">
@@ -80,10 +137,16 @@ export function ProfilePage() {
         </div>
 
         <div className="space-y-3 pt-3 border-t border-border">
-          {user?.email && (
+          {userHandle && (
+            <div className="flex items-center gap-3">
+              <UserIcon className="w-4 h-4 text-text-tertiary" />
+              <span className="text-sm font-mono text-text-primary">Usuário: {userHandle}</span>
+            </div>
+          )}
+          {hasRealEmail && user?.email && (
             <div className="flex items-center gap-3">
               <Mail className="w-4 h-4 text-text-tertiary" />
-              <span className="text-sm text-text-primary">{user.email}</span>
+              <span className="text-sm text-text-secondary">{user.email}</span>
             </div>
           )}
           {profile?.created_at && (
@@ -94,13 +157,49 @@ export function ProfilePage() {
               </span>
             </div>
           )}
-          <div className="flex items-center gap-3">
-            <UserIcon className="w-4 h-4 text-text-tertiary" />
-            <span className="text-sm text-text-secondary">
-              ID: {user?.id?.slice(0, 8)}...
-            </span>
-          </div>
         </div>
+
+        {canUsers && (
+          <div className="pt-2">
+            <Link to="/users">
+              <Button variant="secondary" size="sm">
+                <Users className="w-4 h-4" />
+                Gerenciar Equipe e Contas
+              </Button>
+            </Link>
+          </div>
+        )}
+      </Card>
+
+      {/* Change Password */}
+      <Card className="space-y-4">
+        <div className="flex items-center gap-2">
+          <KeyRound className="w-4 h-4 text-primary-600" />
+          <h2 className="text-base font-semibold text-text-primary">Alterar minha senha</h2>
+        </div>
+        <form onSubmit={handlePasswordChange} className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <Input
+            label="Nova senha"
+            type="password"
+            value={newPassword}
+            onChange={(e) => setNewPassword(e.target.value)}
+            placeholder="Mínimo 6 caracteres"
+            autoComplete="new-password"
+          />
+          <Input
+            label="Confirmar nova senha"
+            type="password"
+            value={confirmPassword}
+            onChange={(e) => setConfirmPassword(e.target.value)}
+            placeholder="Repita a senha"
+            autoComplete="new-password"
+          />
+          <div className="sm:col-span-2 flex justify-end">
+            <Button type="submit" size="sm" loading={savingPassword}>
+              Salvar nova senha
+            </Button>
+          </div>
+        </form>
       </Card>
 
       {/* Audit Log (LGPD) */}
@@ -134,7 +233,7 @@ export function ProfilePage() {
                     {log.record_id ? ` • ID ${log.record_id.slice(0, 8)}...` : ''}
                   </p>
                 </div>
-                <span className="text-text-tertiary whitespace-nowrap">
+                <span className="text-text-tertiary whitespace-nowrap tabular-nums">
                   {formatDateTime(log.created_at)}
                 </span>
               </div>

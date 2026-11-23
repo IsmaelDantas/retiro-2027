@@ -1,6 +1,22 @@
 import { describe, expect, it } from 'vitest';
 import { hashCpfFallback, isValidCpf, normalizeCpf } from '../src/utils/cpf';
-import { canManageData, getRoleLabel, isAdmin, isViewer } from '../src/utils/permissions';
+import {
+  canChangeTargetRole,
+  canDeleteTargetUser,
+  canEditTargetUser,
+  canManageData,
+  canManageUsers,
+  getAssignableRoles,
+  getRoleLabel,
+  isAdmin,
+  isViewer,
+} from '../src/utils/permissions';
+import {
+  formatUserHandle,
+  isValidUsername,
+  normalizeUsername,
+  toAuthEmail,
+} from '../src/utils/username';
 
 describe('CPF LGPD helpers', () => {
   it('valida dígitos verificadores de CPF corretamente', () => {
@@ -22,8 +38,22 @@ describe('CPF LGPD helpers', () => {
   });
 });
 
-describe('Permissões de acesso (admin / coordinator / viewer)', () => {
-  it('permite escrita para admin e coordinator e bloqueia para viewer/nulo', () => {
+describe('Login por nome de usuário', () => {
+  it('normaliza e converte nomes de usuário preservando e-mails legados', () => {
+    expect(normalizeUsername('Irmão Claudejan')).toBe('irmao.claudejan');
+    expect(isValidUsername('claudejan')).toBe(true);
+    expect(isValidUsername('ab')).toBe(false);
+
+    expect(toAuthEmail('claudejan')).toBe('claudejan@retiro2027.app');
+    expect(toAuthEmail('ismcondan2019@gmail.com')).toBe('ismcondan2019@gmail.com');
+    expect(formatUserHandle({ username: 'claudejan', email: 'claudejan@retiro2027.app' })).toBe(
+      '@claudejan'
+    );
+  });
+});
+
+describe('Permissões de acesso (admin / coordinator / supervisor)', () => {
+  it('permite escrita de dados para admin e coordinator e bloqueia para supervisor (viewer)', () => {
     expect(canManageData('admin')).toBe(true);
     expect(canManageData('coordinator')).toBe(true);
     expect(canManageData('viewer')).toBe(false);
@@ -32,6 +62,31 @@ describe('Permissões de acesso (admin / coordinator / viewer)', () => {
     expect(isAdmin('admin')).toBe(true);
     expect(isAdmin('coordinator')).toBe(false);
     expect(isViewer('viewer')).toBe(true);
-    expect(getRoleLabel('viewer')).toContain('Somente leitura');
+    expect(getRoleLabel('viewer')).toBe('Supervisor(a)');
+  });
+
+  it('aplica hierarquia: somente admin exclui/altera outros coordenadores; supervisor nunca gerencia contas', () => {
+    expect(canManageUsers('admin')).toBe(true);
+    expect(canManageUsers('coordinator')).toBe(true);
+    expect(canManageUsers('viewer')).toBe(false);
+
+    expect(getAssignableRoles('admin')).toEqual(['admin', 'coordinator', 'viewer']);
+    expect(getAssignableRoles('coordinator')).toEqual(['coordinator', 'viewer']);
+    expect(getAssignableRoles('viewer')).toEqual([]);
+
+    // Exclusão: apenas admin exclui coordenadores ou outros admins
+    expect(canDeleteTargetUser('admin', 'coordinator', false)).toBe(true);
+    expect(canDeleteTargetUser('admin', 'admin', true)).toBe(false);
+    expect(canDeleteTargetUser('coordinator', 'coordinator', false)).toBe(false);
+    expect(canDeleteTargetUser('coordinator', 'admin', false)).toBe(false);
+    expect(canDeleteTargetUser('coordinator', 'viewer', false)).toBe(true);
+
+    // Edição e troca de papel
+    expect(canEditTargetUser('coordinator', 'admin', false)).toBe(false);
+    expect(canEditTargetUser('coordinator', 'coordinator', false)).toBe(true);
+    expect(canChangeTargetRole('coordinator', 'coordinator', 'viewer', false)).toBe(false);
+    expect(canChangeTargetRole('coordinator', 'viewer', 'coordinator', false)).toBe(true);
+    expect(canChangeTargetRole('coordinator', 'viewer', 'admin', false)).toBe(false);
+    expect(canChangeTargetRole('admin', 'coordinator', 'viewer', false)).toBe(true);
   });
 });

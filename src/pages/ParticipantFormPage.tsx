@@ -10,6 +10,7 @@ import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useParticipantsData } from '../contexts/ParticipantsDataContext';
 import { canManageData } from '../utils/permissions';
 import { isMinorAtRetreat } from '../utils/date';
 import { SHIRT_SIZES } from '../utils/payment';
@@ -55,6 +56,7 @@ export function ParticipantFormPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { profile } = useAuth();
+  const { refresh } = useParticipantsData();
   const writable = canManageData(profile?.role);
 
   const isEdit = Boolean(id);
@@ -163,10 +165,12 @@ export function ParticipantFormPage() {
     try {
       if (isEdit && id) {
         await updateParticipant(id, formData, existingGuardianId);
+        await refresh(true);
         showToast('Participante atualizado com sucesso.');
         navigate(`/participants/${id}`, { replace: true });
       } else {
         const newParticipant = await createParticipant(formData);
+        await refresh(true);
         showToast('Participante cadastrado com sucesso.');
         navigate(`/participants/${newParticipant.id}`, { replace: true });
       }
