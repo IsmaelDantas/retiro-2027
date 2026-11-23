@@ -48,7 +48,7 @@ GRANT EXECUTE ON FUNCTION private.current_user_role() TO authenticated;
 CREATE OR REPLACE FUNCTION private.guard_user_role_change()
 RETURNS TRIGGER
 LANGUAGE plpgsql
-SECURITY DEFINER
+SECURITY INVOKER
 SET search_path = ''
 AS $$
 BEGIN
