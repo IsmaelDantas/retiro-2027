@@ -5,6 +5,7 @@ import type {
   ParticipantFormData,
   ParticipantStatus,
   DashboardStats,
+  ShirtSize,
 } from '../types/database';
 
 /** Fetch all participants with their guardians */
@@ -137,6 +138,9 @@ export async function createParticipant(formData: ParticipantFormData): Promise<
     }
   }
 
+  const isResident =
+    formData.is_resident === 'yes' ? true : formData.is_resident === 'no' ? false : null;
+
   // 2. Create participant
   const { data: participant, error } = await supabase
     .from('participants')
@@ -146,6 +150,10 @@ export async function createParticipant(formData: ParticipantFormData): Promise<
       phone: formData.phone.trim() || null,
       email: formData.email.trim() || null,
       congregation: formData.congregation.trim() || null,
+      locality: formData.locality?.trim() || null,
+      is_resident: isResident,
+      shirt_purchased: Boolean(formData.shirt_purchased),
+      shirt_size: formData.shirt_purchased && formData.shirt_size ? formData.shirt_size : null,
       notes: formData.notes.trim() || null,
       status: formData.status,
     })
@@ -175,6 +183,9 @@ export async function updateParticipant(
   formData: ParticipantFormData,
   existingGuardianId?: string | null
 ): Promise<Participant> {
+  const isResident =
+    formData.is_resident === 'yes' ? true : formData.is_resident === 'no' ? false : null;
+
   // 1. Update participant
   const { data: participant, error } = await supabase
     .from('participants')
@@ -184,6 +195,10 @@ export async function updateParticipant(
       phone: formData.phone.trim() || null,
       email: formData.email.trim() || null,
       congregation: formData.congregation.trim() || null,
+      locality: formData.locality?.trim() || null,
+      is_resident: isResident,
+      shirt_purchased: Boolean(formData.shirt_purchased),
+      shirt_size: formData.shirt_purchased && formData.shirt_size ? formData.shirt_size : null,
       notes: formData.notes.trim() || null,
       status: formData.status,
       updated_at: new Date().toISOString(),
@@ -248,6 +263,24 @@ export async function updateParticipantStatus(
     .from('participants')
     .update({
       status,
+      updated_at: new Date().toISOString(),
+    })
+    .eq('id', participantId);
+
+  if (error) throw error;
+}
+
+/** Marca ou desmarca confirmação de camisa comprada (Sim / Não) para um participante */
+export async function updateParticipantShirt(
+  participantId: string,
+  shirtPurchased: boolean,
+  shirtSize?: ShirtSize | null
+): Promise<void> {
+  const { error } = await supabase
+    .from('participants')
+    .update({
+      shirt_purchased: shirtPurchased,
+      shirt_size: shirtPurchased ? (shirtSize ?? null) : null,
       updated_at: new Date().toISOString(),
     })
     .eq('id', participantId);

@@ -14,10 +14,15 @@ import {
   Wallet,
   Plus,
   CheckCircle2,
+  MessageCircle,
+  Shirt,
+  Home,
+  ShieldAlert,
 } from 'lucide-react';
 import {
   fetchParticipant,
   updateParticipantStatus,
+  updateParticipantShirt,
   deleteParticipant,
 } from '../services/participants';
 import {
@@ -39,13 +44,16 @@ import { PaymentModal } from '../components/payments/PaymentModal';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
 import { canManageData } from '../utils/permissions';
-import { calculateAge, formatDate, formatDateTime } from '../utils/date';
-import { formatCurrency, getPaymentCategoryLabel, getPaymentMethodLabel } from '../utils/payment';
+import { calculateAgeAtRetreat, formatDate, formatDateTime, isMinorAtRetreat } from '../utils/date';
+import { formatCurrency, getPaymentCategoryLabel, getPaymentMethodLabel, SHIRT_SIZES } from '../utils/payment';
+import { buildWhatsAppUrl, formatPhone } from '../utils/phone';
+import { isMinorMissingGuardian } from '../utils/dashboardMetrics';
 import type {
   ParticipantStatus,
   ParticipantWithGuardian,
   Payment,
   PaymentFormData,
+  ShirtSize,
 } from '../types/database';
 import { STATUS_MAP } from '../utils/status';
 
@@ -68,6 +76,7 @@ export function ParticipantDetailPage() {
   const [paymentModalOpen, setPaymentModalOpen] = useState(false);
   const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
   const [busyPaymentId, setBusyPaymentId] = useState<string | null>(null);
+  const [savingShirt, setSavingShirt] = useState(false);
 
   const loadParticipant = useCallback(async () => {
     if (!id) return;
@@ -173,6 +182,25 @@ export function ParticipantDetailPage() {
     }
   };
 
+  const handleToggleShirt = async (purchased: boolean, size?: ShirtSize | null) => {
+    if (!id || !participant) return;
+    setSavingShirt(true);
+    try {
+      const nextSize = purchased ? (size === undefined ? participant.shirt_size : size) : null;
+      await updateParticipantShirt(id, purchased, nextSize);
+      setParticipant({
+        ...participant,
+        shirt_purchased: purchased,
+        shirt_size: nextSize ?? null,
+      });
+      showToast(purchased ? 'Camisa marcada como comprada (Sim).' : 'Camisa marcada como Não comprada.');
+    } catch {
+      showToast('Não foi possível atualizar a confirmação da camisa.', 'error');
+    } finally {
+      setSavingShirt(false);
+    }
+  };
+
   if (loading) {
     return (
       <div className="space-y-4">
@@ -206,7 +234,11 @@ export function ParticipantDetailPage() {
     );
   }
 
-  const age = calculateAge(participant.birth_date);
+  const age = calculateAgeAtRetreat(participant.birth_date);
+  const isMinor = isMinorAtRetreat(participant.birth_date);
+  const missingGuardian = isMinorMissingGuardian(participant);
+  const waParticipant = buildWhatsAppUrl(participant.phone);
+  const waGuardian = buildWhatsAppUrl(participant.guardian?.phone);
 
   return (
     <div className="space-y-4">
@@ -223,8 +255,18 @@ export function ParticipantDetailPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
           <h1 className="text-xl font-bold text-text-primary">{participant.full_name}</h1>
-          <div className="mt-1">
+          <div className="mt-1 flex flex-wrap items-center gap-2">
             <Badge status={participant.status} />
+            {participant.protocol && (
+              <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+                Prot. {participant.protocol}
+              </span>
+            )}
+            {isMinor && (
+              <span className="text-xs font-semibold px-2 py-0.5 rounded-md bg-amber-50 text-amber-800 border border-amber-200">
+                Menor (&lt; 18 em 06/02/2027)
+              </span>
+            )}
           </div>
         </div>
         {writable && (
@@ -253,29 +295,62 @@ export function ParticipantDetailPage() {
         )}
       </div>
 
+      {/* Alert if minor has no guardian */}
+      {missingGuardian && (
+        <div className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-200 text-xs text-rose-900">
+          <ShieldAlert className="w-4 h-4 text-rose-600 flex-shrink-0 mt-0.5" />
+          <span>
+            <strong>Atenção:</strong> Participante menor de 18 anos sem nome e WhatsApp do responsável cadastrado.
+          </span>
+        </div>
+      )}
+
       {/* Participant Info */}
       <Card>
-        <h2 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
-          <UserIcon className="w-4 h-4 text-primary-600" />
-          Dados do Participante
-        </h2>
+        <div className="flex items-center justify-between gap-2 mb-3">
+          <h2 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+            <UserIcon className="w-4 h-4 text-primary-600" />
+            Dados do Participante
+          </h2>
+          {waParticipant && (
+            <a
+              href={waParticipant}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+            >
+              <MessageCircle className="w-3.5 h-3.5" />
+              WhatsApp do Jovem
+            </a>
+          )}
+        </div>
         <div className="space-y-3">
           <InfoRow icon={<UserIcon className="w-4 h-4" />} label="Nome" value={participant.full_name} />
           {participant.birth_date && (
             <InfoRow
               icon={<Calendar className="w-4 h-4" />}
               label="Nascimento"
-              value={`${formatDate(participant.birth_date)}${age !== null ? ` (${age} anos)` : ''}`}
+              value={`${formatDate(participant.birth_date)}${age !== null ? ` (${age} anos no retiro)` : ''}`}
             />
           )}
           {participant.phone && (
-            <InfoRow icon={<Phone className="w-4 h-4" />} label="Telefone" value={participant.phone} />
+            <InfoRow icon={<Phone className="w-4 h-4" />} label="WhatsApp / Telefone" value={formatPhone(participant.phone)} />
           )}
           {participant.email && (
             <InfoRow icon={<Mail className="w-4 h-4" />} label="E-mail" value={participant.email} />
           )}
           {participant.congregation && (
             <InfoRow icon={<MapPin className="w-4 h-4" />} label="Congregação" value={participant.congregation} />
+          )}
+          {participant.locality && (
+            <InfoRow icon={<MapPin className="w-4 h-4" />} label="Localidade" value={participant.locality} />
+          )}
+          {participant.is_resident !== null && (
+            <InfoRow
+              icon={<Home className="w-4 h-4" />}
+              label="Alojamento (Interno)"
+              value={participant.is_resident ? 'Sim — ficará interno' : 'Não — externo'}
+            />
           )}
           {participant.notes && (
             <div className="pt-2 border-t border-border">
@@ -286,17 +361,88 @@ export function ParticipantDetailPage() {
         </div>
       </Card>
 
+      {/* Shirt Confirmation Card (Sim / Não) */}
+      <Card>
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex items-center gap-2.5">
+            <Shirt className="w-5 h-5 text-indigo-600" />
+            <div>
+              <h2 className="text-sm font-semibold text-text-primary">Confirmação de Camisa</h2>
+              <p className="text-xs text-text-secondary">
+                Comprou camisa?{' '}
+                <strong className={participant.shirt_purchased ? 'text-emerald-700' : 'text-slate-700'}>
+                  {participant.shirt_purchased ? 'Sim' : 'Não'}
+                </strong>
+                {participant.shirt_purchased && participant.shirt_size
+                  ? ` • Tamanho ${participant.shirt_size}`
+                  : ''}
+              </p>
+            </div>
+          </div>
+
+          {writable && (
+            <div className="flex flex-wrap items-center gap-2">
+              <Button
+                size="sm"
+                variant={participant.shirt_purchased ? 'primary' : 'secondary'}
+                loading={savingShirt}
+                onClick={() => handleToggleShirt(true)}
+              >
+                Sim
+              </Button>
+              <Button
+                size="sm"
+                variant={!participant.shirt_purchased ? 'danger' : 'secondary'}
+                loading={savingShirt}
+                onClick={() => handleToggleShirt(false, null)}
+              >
+                Não
+              </Button>
+              {participant.shirt_purchased && (
+                <select
+                  aria-label="Tamanho da camisa"
+                  value={participant.shirt_size ?? ''}
+                  disabled={savingShirt}
+                  onChange={(e) => handleToggleShirt(true, (e.target.value || null) as ShirtSize | null)}
+                  className="px-2.5 py-1.5 rounded-lg border border-border text-xs font-semibold bg-white"
+                >
+                  <option value="">Tamanho (opc.)</option>
+                  {SHIRT_SIZES.map((sz) => (
+                    <option key={sz} value={sz}>
+                      {sz}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+          )}
+        </div>
+      </Card>
+
       {/* Guardian Info */}
       {participant.guardian && (
         <Card>
-          <h2 className="text-sm font-semibold text-text-primary mb-3 flex items-center gap-2">
-            <Users className="w-4 h-4 text-primary-600" />
-            Responsável
-          </h2>
+          <div className="flex items-center justify-between gap-2 mb-3">
+            <h2 className="text-sm font-semibold text-text-primary flex items-center gap-2">
+              <Users className="w-4 h-4 text-primary-600" />
+              Responsável
+            </h2>
+            {waGuardian && (
+              <a
+                href={waGuardian}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
+              >
+                <MessageCircle className="w-3.5 h-3.5" />
+                WhatsApp do Resp.
+              </a>
+            )}
+          </div>
           <div className="space-y-3">
             <InfoRow icon={<UserIcon className="w-4 h-4" />} label="Nome" value={participant.guardian.full_name} />
             <InfoRow label="Parentesco" value={participant.guardian.relationship} />
-            <InfoRow icon={<Phone className="w-4 h-4" />} label="Telefone" value={participant.guardian.phone} />
+            <InfoRow icon={<Phone className="w-4 h-4" />} label="Telefone" value={formatPhone(participant.guardian.phone)} />
             {participant.guardian.email && (
               <InfoRow icon={<Mail className="w-4 h-4" />} label="E-mail" value={participant.guardian.email} />
             )}
