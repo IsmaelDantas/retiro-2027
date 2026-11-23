@@ -1,5 +1,5 @@
 import type { ParticipantWithGuardian, PaymentWithParticipant } from '../types/database';
-import { calculateAge, formatDate } from './date';
+import { calculateAgeAtRetreat, formatDate } from './date';
 import { getStatusLabel } from './status';
 import {
   getPaymentCategoryLabel,
@@ -15,12 +15,17 @@ export function participantsToCSV(participants: ParticipantWithGuardian[]): stri
   const BOM = '\uFEFF';
 
   const headers = [
+    'Protocolo',
     'Nome',
     'Data de Nascimento',
-    'Idade',
+    'Idade (06/02/2027)',
     'Telefone',
     'E-mail',
     'Congregação',
+    'Localidade',
+    'Interno',
+    'Comprou Camisa',
+    'Tamanho',
     'Responsável',
     'Parentesco',
     'Telefone do Responsável',
@@ -29,22 +34,53 @@ export function participantsToCSV(participants: ParticipantWithGuardian[]): stri
   ];
 
   const rows = participants.map((p) => [
+    escapeCSV(p.protocol ?? ''),
     escapeCSV(p.full_name),
     escapeCSV(formatDate(p.birth_date)),
-    p.birth_date ? String(calculateAge(p.birth_date) ?? '') : '',
+    p.birth_date ? String(calculateAgeAtRetreat(p.birth_date) ?? '') : '',
     escapeCSV(p.phone ?? ''),
     escapeCSV(p.email ?? ''),
     escapeCSV(p.congregation ?? ''),
+    escapeCSV(p.locality ?? ''),
+    p.is_resident === true ? 'Sim' : p.is_resident === false ? 'Não' : '',
+    p.shirt_purchased ? 'Sim' : 'Não',
+    escapeCSV(p.shirt_size ?? ''),
     escapeCSV(p.guardian?.full_name ?? ''),
     escapeCSV(p.guardian?.relationship ?? ''),
     escapeCSV(p.guardian?.phone ?? ''),
     escapeCSV(getStatusLabel(p.status)),
-    escapeCSV(formatDate(p.created_at)),
+    escapeCSV(formatDate(p.registered_at ?? p.created_at)),
   ]);
 
   const csvContent = [headers.join(';'), ...rows.map((row) => row.join(';'))].join('\n');
 
   return BOM + csvContent;
+}
+
+/** Exporta lista simplificada de confirmação de camisas (Sim / Não) em CSV */
+export function shirtsChecklistToCSV(participants: ParticipantWithGuardian[]): string {
+  const BOM = '\uFEFF';
+  const headers = [
+    'Protocolo',
+    'Participante',
+    'Congregação',
+    'WhatsApp',
+    'Responsável',
+    'Comprou Camisa',
+    'Tamanho',
+  ];
+
+  const rows = participants.map((p) => [
+    escapeCSV(p.protocol ?? ''),
+    escapeCSV(p.full_name),
+    escapeCSV(p.congregation ?? ''),
+    escapeCSV(p.phone ?? ''),
+    escapeCSV(p.guardian?.full_name ?? ''),
+    p.shirt_purchased ? 'Sim' : 'Não',
+    escapeCSV(p.shirt_size ?? ''),
+  ]);
+
+  return BOM + [headers.join(';'), ...rows.map((r) => r.join(';'))].join('\n');
 }
 
 /**

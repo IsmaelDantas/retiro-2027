@@ -1,33 +1,22 @@
 import { useEffect, useState } from 'react';
-import { Download, FileSpreadsheet, Wallet } from 'lucide-react';
+import { Download, FileSpreadsheet, Shirt } from 'lucide-react';
 import { fetchParticipants } from '../services/participants';
-import { fetchPaymentsWithParticipants, isPaymentsTableMissingError } from '../services/payments';
-import { participantsToCSV, paymentsToCSV, downloadCSV } from '../utils/csv';
-import { PAYMENT_CATEGORY_OPTIONS, PAYMENT_STATUS_OPTIONS } from '../utils/payment';
+import { participantsToCSV, shirtsChecklistToCSV, downloadCSV } from '../utils/csv';
 import { StatusFilter } from '../components/ui/StatusFilter';
 import { Button } from '../components/ui/Button';
 import { Card } from '../components/ui/Card';
 import { ErrorState } from '../components/ui/ErrorState';
 import { useToast } from '../contexts/ToastContext';
-import type {
-  ParticipantStatus,
-  ParticipantWithGuardian,
-  PaymentCategory,
-  PaymentStatus,
-  PaymentWithParticipant,
-} from '../types/database';
+import type { ParticipantStatus, ParticipantWithGuardian } from '../types/database';
 
 export function ReportsPage() {
   const { showToast } = useToast();
 
   const [participants, setParticipants] = useState<ParticipantWithGuardian[]>([]);
-  const [payments, setPayments] = useState<PaymentWithParticipant[]>([]);
-  const [paymentsTableMissing, setPaymentsTableMissing] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [statusFilter, setStatusFilter] = useState<ParticipantStatus | 'all'>('all');
-  const [paymentCategoryFilter, setPaymentCategoryFilter] = useState<PaymentCategory | 'all'>('shirt');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatus | 'all'>('all');
+  const [shirtFilter, setShirtFilter] = useState<'all' | 'yes' | 'no'>('all');
   const [exporting, setExporting] = useState(false);
 
   const loadParticipants = async () => {
@@ -36,15 +25,6 @@ export function ReportsPage() {
     try {
       const data = await fetchParticipants();
       setParticipants(data);
-      try {
-        const payData = await fetchPaymentsWithParticipants();
-        setPayments(payData.payments);
-        setPaymentsTableMissing(false);
-      } catch (payErr) {
-        if (isPaymentsTableMissingError(payErr)) {
-          setPaymentsTableMissing(true);
-        }
-      }
     } catch {
       setError('Não foi possível carregar os dados.');
     } finally {
@@ -53,7 +33,7 @@ export function ReportsPage() {
   };
 
   useEffect(() => {
-    loadParticipants();
+    void loadParticipants();
   }, []);
 
   const filteredParticipants =
@@ -61,9 +41,10 @@ export function ReportsPage() {
       ? participants
       : participants.filter((p) => p.status === statusFilter);
 
-  const filteredPayments = payments.filter((p) => {
-    if (paymentCategoryFilter !== 'all' && p.category !== paymentCategoryFilter) return false;
-    if (paymentStatusFilter !== 'all' && p.status !== paymentStatusFilter) return false;
+  const activeForShirts = participants.filter((p) => {
+    if (p.status === 'cancelled') return false;
+    if (shirtFilter === 'yes') return p.shirt_purchased;
+    if (shirtFilter === 'no') return !p.shirt_purchased;
     return true;
   });
 
@@ -86,20 +67,20 @@ export function ReportsPage() {
     }
   };
 
-  const handleExportPayments = () => {
-    if (filteredPayments.length === 0) {
-      showToast('Não há registros de pagamento para exportar.', 'info');
+  const handleExportShirts = () => {
+    if (activeForShirts.length === 0) {
+      showToast('Não há registros de camisas para exportar.', 'info');
       return;
     }
 
     setExporting(true);
     try {
-      const csv = paymentsToCSV(filteredPayments);
-      const suffix = paymentCategoryFilter !== 'all' ? `-${paymentCategoryFilter}` : '';
-      downloadCSV(csv, `retiro-2027-pagamentos${suffix}.csv`);
-      showToast(`${filteredPayments.length} registro(s) de pagamento exportados.`);
+      const csv = shirtsChecklistToCSV(activeForShirts);
+      const suffix = shirtFilter !== 'all' ? `-${shirtFilter}` : '';
+      downloadCSV(csv, `retiro-2027-camisas${suffix}.csv`);
+      showToast(`${activeForShirts.length} registro(s) exportados.`);
     } catch {
-      showToast('Erro ao exportar os pagamentos.', 'error');
+      showToast('Erro ao exportar a lista de camisas.', 'error');
     } finally {
       setExporting(false);
     }
@@ -113,7 +94,7 @@ export function ReportsPage() {
         <ErrorState message={error} onRetry={loadParticipants} />
       ) : (
         <>
-          {/* Export Card */}
+          {/* Export Participants Card */}
           <Card className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-primary-50 flex items-center justify-center flex-shrink-0">
@@ -124,8 +105,7 @@ export function ReportsPage() {
                   Exportar Participantes
                 </h2>
                 <p className="text-xs text-text-secondary mt-0.5">
-                  Exporte a lista de participantes em formato CSV. O arquivo pode ser aberto
-                  no Excel, Google Sheets ou outro editor de planilhas.
+                  Lista completa com protocolo, congregação, localidade, alojamento, responsável e camisa.
                 </p>
               </div>
             </div>
@@ -164,100 +144,75 @@ export function ReportsPage() {
             </div>
           </Card>
 
-          {/* Export Payments & Shirts Card */}
+          {/* Export Shirts Card (Sim / Não) */}
           <Card className="space-y-4">
             <div className="flex items-start gap-3">
               <div className="w-10 h-10 rounded-lg bg-emerald-50 flex items-center justify-center flex-shrink-0">
-                <Wallet className="w-5 h-5 text-emerald-600" />
+                <Shirt className="w-5 h-5 text-emerald-600" />
               </div>
               <div>
                 <h2 className="text-sm font-semibold text-text-primary">
-                  Exportar Pagamentos & Blusas
+                  Exportar Confirmação de Camisas (Sim / Não)
                 </h2>
                 <p className="text-xs text-text-secondary mt-0.5">
-                  Exporte a lista de quem pagou e quem não pagou, incluindo tamanhos de blusas,
-                  valores e formas de pagamento.
+                  Lista dos inscritos ativos com confirmação de camisa marcada pelo coordenador.
                 </p>
               </div>
             </div>
 
-            {paymentsTableMissing ? (
-              <p className="text-xs text-amber-700 bg-amber-50 p-3 rounded-lg border border-amber-200">
-                Execute <code className="font-mono">supabase/migration_payments.sql</code> no Supabase para exportar pagamentos.
-              </p>
-            ) : (
-              <div className="space-y-3">
-                <div>
-                  <p className="text-xs font-medium text-text-secondary mb-2">Categoria:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {PAYMENT_CATEGORY_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setPaymentCategoryFilter(opt.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                          paymentCategoryFilter === opt.value
-                            ? 'bg-slate-900 text-white border-slate-900'
-                            : 'bg-white text-slate-700 border-border hover:bg-slate-50'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-xs font-medium text-text-secondary mb-2">Situação:</p>
-                  <div className="flex flex-wrap gap-2">
-                    {PAYMENT_STATUS_OPTIONS.map((opt) => (
-                      <button
-                        key={opt.value}
-                        onClick={() => setPaymentStatusFilter(opt.value)}
-                        className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
-                          paymentStatusFilter === opt.value
-                            ? 'bg-slate-900 text-white border-slate-900'
-                            : 'bg-white text-slate-700 border-border hover:bg-slate-50'
-                        }`}
-                      >
-                        {opt.label}
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-2 border-t border-border">
-                  <p className="text-sm text-text-secondary">
-                    {loading ? (
-                      'Carregando...'
-                    ) : (
-                      <>
-                        <strong>{filteredPayments.length}</strong> registro
-                        {filteredPayments.length !== 1 ? 's' : ''} encontrado
-                        {filteredPayments.length !== 1 ? 's' : ''}
-                      </>
-                    )}
-                  </p>
-
-                  <Button
-                    size="sm"
-                    onClick={handleExportPayments}
-                    loading={exporting}
-                    disabled={loading || filteredPayments.length === 0}
+            <div className="space-y-3">
+              <div className="flex flex-wrap gap-2">
+                {(
+                  [
+                    { value: 'all', label: 'Todos ativos' },
+                    { value: 'yes', label: 'Comprou: Sim' },
+                    { value: 'no', label: 'Comprou: Não' },
+                  ] as const
+                ).map((opt) => (
+                  <button
+                    key={opt.value}
+                    onClick={() => setShirtFilter(opt.value)}
+                    className={`px-3 py-1.5 rounded-lg text-xs font-bold border transition-all cursor-pointer ${
+                      shirtFilter === opt.value
+                        ? 'bg-slate-900 text-white border-slate-900'
+                        : 'bg-white text-slate-700 border-border hover:bg-slate-50'
+                    }`}
                   >
-                    <Download className="w-4 h-4" />
-                    Exportar Pagamentos CSV
-                  </Button>
-                </div>
+                    {opt.label}
+                  </button>
+                ))}
               </div>
-            )}
+
+              <div className="flex items-center justify-between pt-2 border-t border-border">
+                <p className="text-sm text-text-secondary">
+                  {loading ? (
+                    'Carregando...'
+                  ) : (
+                    <>
+                      <strong>{activeForShirts.length}</strong> registro
+                      {activeForShirts.length !== 1 ? 's' : ''} encontrado
+                      {activeForShirts.length !== 1 ? 's' : ''}
+                    </>
+                  )}
+                </p>
+
+                <Button
+                  size="sm"
+                  onClick={handleExportShirts}
+                  loading={exporting}
+                  disabled={loading || activeForShirts.length === 0}
+                >
+                  <Download className="w-4 h-4" />
+                  Exportar Camisas CSV
+                </Button>
+              </div>
+            </div>
           </Card>
 
-          {/* Info */}
           <Card className="bg-primary-50 border-primary-200">
             <p className="text-xs text-primary-700">
-              <strong>Dica:</strong> O arquivo CSV utiliza ponto e vírgula (;) como separador,
-              compatível com o padrão brasileiro. Ao abrir no Excel, os dados serão
-              organizados corretamente em colunas.
+              <strong>Dica:</strong> O arquivo CSV utiliza ponto e vírgula (;) como separador e BOM UTF-8,
+              abrindo com acentuação correta no Excel e LibreOffice.
             </p>
           </Card>
         </>

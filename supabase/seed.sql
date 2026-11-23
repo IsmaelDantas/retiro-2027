@@ -1,36 +1,31 @@
 -- =============================================
--- Retiro 2027 — Seed Data (DEVELOPMENT ONLY)
--- Execute this AFTER schema.sql and rls.sql
--- ⚠️ THIS IS TEST DATA — DO NOT USE IN PRODUCTION
+-- Retiro 2027 — Seed Data (DEMONSTRAÇÃO / DADOS FICTÍCIOS)
+-- Execute AFTER schema.sql and rls.sql
+-- ⚠️ NUNCA USE EM PRODUÇÃO — DADOS 100% FICTÍCIOS
 -- =============================================
 
--- Insert test guardians
 INSERT INTO public.guardians (id, full_name, relationship, phone, email) VALUES
-  ('a1111111-1111-1111-1111-111111111111', 'Maria Silva', 'Mãe', '(11) 99999-0001', 'maria.silva@email.com'),
-  ('a2222222-2222-2222-2222-222222222222', 'José Oliveira', 'Pai', '(11) 99999-0002', 'jose.oliveira@email.com'),
-  ('a3333333-3333-3333-3333-333333333333', 'Ana Souza', 'Mãe', '(11) 99999-0003', 'ana.souza@email.com'),
-  ('a4444444-4444-4444-4444-444444444444', 'Carlos Santos', 'Pai', '(11) 99999-0004', NULL);
+  ('a1111111-1111-1111-1111-111111111111', 'Maria Silva (Demo)', 'Mãe', '(88) 99999-0001', 'maria.demo@exemplo.com'),
+  ('a2222222-2222-2222-2222-222222222222', 'José Oliveira (Demo)', 'Pai', '(88) 99999-0002', 'jose.demo@exemplo.com'),
+  ('a3333333-3333-3333-3333-333333333333', 'Ana Souza (Demo)', 'Mãe', '(88) 99999-0003', 'ana.demo@exemplo.com'),
+  ('a4444444-4444-4444-4444-444444444444', 'Carlos Santos (Demo)', 'Pai', '(88) 99999-0004', NULL)
+ON CONFLICT (id) DO NOTHING;
 
--- Insert test participants
-INSERT INTO public.participants (id, full_name, birth_date, phone, email, congregation, notes, status) VALUES
-  ('b1111111-1111-1111-1111-111111111111', 'João Silva', '2009-03-15', '(11) 98888-0001', 'joao@email.com', 'Igreja Central', NULL, 'confirmed'),
-  ('b2222222-2222-2222-2222-222222222222', 'Pedro Silva', '2011-07-22', '(11) 98888-0002', NULL, 'Igreja Central', 'Alérgico a amendoim', 'pending'),
-  ('b3333333-3333-3333-3333-333333333333', 'Lucas Oliveira', '2010-01-10', '(11) 98888-0003', 'lucas@email.com', 'Igreja Norte', NULL, 'confirmed'),
-  ('b4444444-4444-4444-4444-444444444444', 'Mariana Souza', '2009-11-05', '(11) 98888-0004', 'mariana@email.com', 'Igreja Sul', NULL, 'pending'),
-  ('b5555555-5555-5555-5555-555555555555', 'Gabriel Santos', '2010-06-18', '(11) 98888-0005', NULL, 'Igreja Leste', 'Primeira vez no retiro', 'cancelled');
+INSERT INTO public.participants (
+  id, protocol, full_name, birth_date, phone, email, congregation, locality,
+  is_resident, registered_at, shirt_purchased, shirt_size, notes, status
+) VALUES
+  ('b1111111-1111-1111-1111-111111111111', 'RET-2027-0001', 'João Silva (Demo)', '2007-03-15', '(88) 98888-0001', 'joao.demo@exemplo.com', 'Templo Central', 'Centro', true, NOW() - INTERVAL '4 days', true, 'M', NULL, 'confirmed'),
+  ('b2222222-2222-2222-2222-222222222222', 'RET-2027-0002', 'Pedro Silva (Demo)', '2011-07-22', '(88) 98888-0002', NULL, 'Templo Central', 'Centro', true, NOW() - INTERVAL '3 days', false, NULL, 'Menor em observação', 'pending'),
+  ('b3333333-3333-3333-3333-333333333333', 'RET-2027-0003', 'Lucas Oliveira (Demo)', '2010-01-10', '(88) 98888-0003', 'lucas.demo@exemplo.com', 'Congregação Nova Veneza', 'Distrito Nova Veneza', false, NOW() - INTERVAL '2 days', true, 'G', NULL, 'confirmed'),
+  ('b4444444-4444-4444-4444-444444444444', 'RET-2027-0004', 'Mariana Souza (Demo)', '2006-11-05', '(88) 98888-0004', 'mariana.demo@exemplo.com', 'Congregação Monte Castelo', 'Monte Castelo', true, NOW() - INTERVAL '1 day', true, 'M', NULL, 'confirmed'),
+  ('b5555555-5555-5555-5555-555555555555', 'RET-2027-0005', 'Gabriel Santos (Demo)', '2012-06-18', '(88) 98888-0005', NULL, 'Sou de outra igreja/sou convidado', 'Zona Rural', false, NOW(), false, NULL, 'Desistência de exemplo', 'cancelled')
+ON CONFLICT (id) DO NOTHING;
 
--- Link participants to guardians
 INSERT INTO public.participant_guardians (participant_id, guardian_id) VALUES
-  ('b1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111'),  -- João → Maria Silva
-  ('b2222222-2222-2222-2222-222222222222', 'a1111111-1111-1111-1111-111111111111'),  -- Pedro → Maria Silva (same guardian!)
-  ('b3333333-3333-3333-3333-333333333333', 'a2222222-2222-2222-2222-222222222222'),  -- Lucas → José Oliveira
-  ('b4444444-4444-4444-4444-444444444444', 'a3333333-3333-3333-3333-333333333333'),  -- Mariana → Ana Souza
-  ('b5555555-5555-5555-5555-555555555555', 'a4444444-4444-4444-4444-444444444444');  -- Gabriel → Carlos Santos
-
--- Insert test payments (shirts and registration)
-INSERT INTO public.payments (participant_id, category, description, shirt_size, amount, paid_amount, status, payment_method, paid_at) VALUES
-  ('b1111111-1111-1111-1111-111111111111', 'shirt', 'Blusa Retiro 2027', 'M', 45.00, 45.00, 'paid', 'pix', NOW()),
-  ('b2222222-2222-2222-2222-222222222222', 'shirt', 'Blusa Retiro 2027', 'P', 45.00, 0.00, 'unpaid', NULL, NULL),
-  ('b3333333-3333-3333-3333-333333333333', 'shirt', 'Blusa Retiro 2027', 'G', 45.00, 20.00, 'partial', 'cash', NOW()),
-  ('b4444444-4444-4444-4444-444444444444', 'shirt', 'Blusa Retiro 2027', 'M', 45.00, 45.00, 'paid', 'pix', NOW()),
-  ('b1111111-1111-1111-1111-111111111111', 'registration', 'Inscrição Retiro 2027', NULL, 150.00, 150.00, 'paid', 'pix', NOW());
+  ('b1111111-1111-1111-1111-111111111111', 'a1111111-1111-1111-1111-111111111111'),
+  ('b2222222-2222-2222-2222-222222222222', 'a1111111-1111-1111-1111-111111111111'),
+  ('b3333333-3333-3333-3333-333333333333', 'a2222222-2222-2222-2222-222222222222'),
+  ('b4444444-4444-4444-4444-444444444444', 'a3333333-3333-3333-3333-333333333333'),
+  ('b5555555-5555-5555-5555-555555555555', 'a4444444-4444-4444-4444-444444444444')
+ON CONFLICT DO NOTHING;
