@@ -34,3 +34,17 @@ pnpm-debug.log*
 # Misc
 *.local
 .vercel
+
+# Dados reais e arquivos externos da igreja (LGPD - NUNCA commitar)
+retiro_inscricoes*.sql
+retiro_termos*.sql
+retiro.zip
+retiro-php/
+dados-locais/
+imports/
+*.dump.sql
+*.bak.sql
+*.csv
+*.xlsx
+*.xls
+*.zip
