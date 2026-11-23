@@ -1,67 +1,102 @@
-import { LogOut, Menu, X } from 'lucide-react';
+import { Link, useLocation } from 'react-router-dom';
+import { RefreshCw, UserPlus, Download } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { useSidebar } from '../../contexts/SidebarContext';
+import { useParticipantsData } from '../../contexts/ParticipantsDataContext';
+import { usePwaInstall } from '../pwa/PwaStatusBar';
+import { canManageData } from '../../utils/permissions';
+
+function getPageTitle(pathname: string): string {
+  if (pathname.startsWith('/dashboard')) return 'Painel';
+  if (pathname === '/participants/new') return 'Nova inscrição';
+  if (pathname.endsWith('/edit')) return 'Editar inscrito';
+  if (pathname.startsWith('/participants/')) return 'Ficha do inscrito';
+  if (pathname.startsWith('/participants')) return 'Inscritos';
+  if (pathname.startsWith('/payments')) return 'Camisas';
+  if (pathname.startsWith('/import')) return 'Importar CSV';
+  if (pathname.startsWith('/reports')) return 'Relatórios';
+  if (pathname.startsWith('/profile')) return 'Perfil e auditoria';
+  return 'Retiro 2027';
+}
 
 export function TopHeader() {
-  const { signOut, profile, user } = useAuth();
-  const { isDrawerOpen, toggleDrawer } = useSidebar();
+  const { pathname } = useLocation();
+  const { profile } = useAuth();
+  const { refreshing, lastUpdated, refresh } = useParticipantsData();
+  const { canInstall, triggerInstall } = usePwaInstall();
 
-  const displayName = profile?.name || user?.email?.split('@')[0] || 'Coordenador';
+  const writable = canManageData(profile?.role);
+  const pageTitle = getPageTitle(pathname);
+  const showQuickAdd = writable && (pathname === '/dashboard' || pathname === '/participants');
+
+  const updatedLabel = lastUpdated
+    ? `Atualizado às ${lastUpdated.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}`
+    : '';
 
   return (
-    <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-md border-b border-slate-200/80 shadow-xs">
-      <div className="flex items-center justify-between h-16 px-4 max-w-5xl mx-auto">
-        {/* Left: Brand logo & name */}
-        <div className="flex items-center gap-3">
-          <button
-            onClick={toggleDrawer}
-            className="p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100
-                       transition-colors duration-150 cursor-pointer focus:outline-none"
-            title={isDrawerOpen ? 'Fechar menu' : 'Menu principal'}
-            aria-label="Abrir menu"
+    <header className="sticky top-0 z-30 w-full bg-white/95 backdrop-blur-sm border-b border-border">
+      <div className="flex items-center justify-between h-14 sm:h-16 px-4 sm:px-6 max-w-6xl mx-auto gap-3">
+        {/* Mobile Brand + Page Title / Desktop Page Title */}
+        <div className="flex items-center gap-2.5 min-w-0">
+          <Link
+            to="/dashboard"
+            className="lg:hidden w-8 h-8 rounded-lg overflow-hidden flex-shrink-0 bg-primary-900"
+            aria-label="Ir para o painel inicial"
           >
-            {isDrawerOpen ? (
-              <X className="w-6 h-6 text-slate-800" />
-            ) : (
-              <Menu className="w-6 h-6 text-slate-800" />
+            <img
+              src="/logo-128.webp"
+              alt=""
+              width={32}
+              height={32}
+              decoding="async"
+              className="w-full h-full object-cover"
+            />
+          </Link>
+          <div className="min-w-0">
+            <p className="text-base sm:text-lg font-bold text-text-primary leading-tight truncate">
+              {pageTitle}
+            </p>
+            {updatedLabel && (
+              <p className="hidden sm:block text-xs text-text-tertiary leading-tight">
+                {updatedLabel}
+              </p>
             )}
-          </button>
-
-          <div className="flex items-center gap-2.5">
-            <div className="w-10 h-10 rounded-xl overflow-hidden shadow-sm flex-shrink-0 bg-slate-900">
-              <img src="/logo.jpg" alt="Retiro 2027" className="w-full h-full object-cover" />
-            </div>
-            <div>
-              <span className="text-base font-bold text-slate-900 leading-tight block">
-                Retiro 2027
-              </span>
-              <span className="text-xs text-slate-500 leading-none block mt-0.5">
-                Gestão de Participantes
-              </span>
-            </div>
           </div>
         </div>
 
-        {/* Right: User profile & Logout */}
-        <div className="flex items-center gap-2">
-          <div className="hidden sm:flex items-center gap-2.5 bg-slate-100/80 px-3 py-1.5 rounded-full">
-            <div className="w-7 h-7 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-xs">
-              {displayName.charAt(0).toUpperCase()}
-            </div>
-            <span className="text-xs font-semibold text-slate-800 max-w-[120px] truncate">
-              {displayName}
-            </span>
-          </div>
+        {/* Right actions */}
+        <div className="flex items-center gap-2 flex-shrink-0">
+          {canInstall && (
+            <button
+              type="button"
+              onClick={() => void triggerInstall()}
+              className="hidden sm:inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg border border-primary-200 bg-primary-50 text-primary-700 hover:bg-primary-100 text-xs font-semibold cursor-pointer transition-colors"
+            >
+              <Download className="w-3.5 h-3.5" aria-hidden="true" />
+              <span>Instalar aplicativo</span>
+            </button>
+          )}
 
           <button
-            onClick={signOut}
-            className="p-2.5 rounded-xl text-slate-500 hover:text-rose-600 hover:bg-rose-50
-                       transition-colors duration-150 cursor-pointer flex items-center gap-1.5 text-xs font-semibold"
-            title="Sair da conta"
+            type="button"
+            onClick={() => void refresh(true)}
+            disabled={refreshing}
+            className="inline-flex items-center justify-center gap-1.5 px-3 py-2 min-h-[40px] min-w-[40px] rounded-lg border border-border bg-white hover:bg-surface-tertiary text-text-secondary text-xs font-medium cursor-pointer transition-colors disabled:opacity-60"
+            aria-label="Atualizar lista de inscritos"
+            title="Atualizar dados"
           >
-            <LogOut className="w-5 h-5 text-slate-600 hover:text-rose-600" />
-            <span className="hidden md:inline">Sair</span>
+            <RefreshCw className={`w-4 h-4 ${refreshing ? 'animate-spin text-primary-600' : ''}`} aria-hidden="true" />
+            <span className="hidden sm:inline">{refreshing ? 'Atualizando…' : 'Atualizar'}</span>
           </button>
+
+          {showQuickAdd && (
+            <Link
+              to="/participants/new"
+              className="lg:hidden inline-flex items-center gap-1.5 px-3 py-2 min-h-[40px] rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold transition-colors"
+            >
+              <UserPlus className="w-4 h-4" aria-hidden="true" />
+              <span>Novo</span>
+            </Link>
+          )}
         </div>
       </div>
     </header>

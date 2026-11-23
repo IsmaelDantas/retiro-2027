@@ -30,6 +30,7 @@ import { DetailSkeleton } from '../components/ui/Skeleton';
 import { ErrorState } from '../components/ui/ErrorState';
 import { useToast } from '../contexts/ToastContext';
 import { useAuth } from '../contexts/AuthContext';
+import { useParticipantsData } from '../contexts/ParticipantsDataContext';
 import { canManageData } from '../utils/permissions';
 import { calculateAgeAtRetreat, formatDate, formatDateTime, isMinorAtRetreat } from '../utils/date';
 import { SHIRT_SIZES } from '../utils/payment';
@@ -47,6 +48,7 @@ export function ParticipantDetailPage() {
   const navigate = useNavigate();
   const { showToast } = useToast();
   const { profile } = useAuth();
+  const { refresh, patchStatusLocal, patchShirtLocal } = useParticipantsData();
   const writable = canManageData(profile?.role);
 
   const [participant, setParticipant] = useState<ParticipantWithGuardian | null>(null);
@@ -85,6 +87,7 @@ export function ParticipantDetailPage() {
     setDeleting(true);
     try {
       await deleteParticipant(id);
+      await refresh(true);
       showToast('Participante excluído com sucesso.');
       navigate('/participants', { replace: true });
     } catch {
@@ -101,6 +104,7 @@ export function ParticipantDetailPage() {
     try {
       await updateParticipantStatus(id, newStatus);
       setParticipant({ ...participant, status: newStatus });
+      patchStatusLocal(id, newStatus);
       showToast(`Status alterado para "${STATUS_MAP[newStatus].label}".`);
       setShowStatusModal(false);
     } catch {
@@ -121,6 +125,7 @@ export function ParticipantDetailPage() {
         shirt_purchased: purchased,
         shirt_size: nextSize ?? null,
       });
+      patchShirtLocal(id, purchased, nextSize ?? null);
       showToast(purchased ? 'Camisa marcada como comprada (Sim).' : 'Camisa marcada como Não comprada.');
     } catch {
       showToast('Não foi possível atualizar a confirmação da camisa.', 'error');
@@ -182,11 +187,13 @@ export function ParticipantDetailPage() {
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
         <div>
-          <h1 className="text-xl font-bold text-text-primary">{participant.full_name}</h1>
-          <div className="mt-1 flex flex-wrap items-center gap-2">
+          <h1 className="text-xl sm:text-2xl font-bold text-slate-900 tracking-tight">
+            {participant.full_name}
+          </h1>
+          <div className="mt-1.5 flex flex-wrap items-center gap-2">
             <Badge status={participant.status} />
             {participant.protocol && (
-              <span className="text-xs font-mono px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
+              <span className="text-xs font-mono tabular-nums px-2 py-0.5 rounded-md bg-slate-100 text-slate-700 border border-slate-200">
                 Prot. {participant.protocol}
               </span>
             )}
@@ -198,7 +205,7 @@ export function ParticipantDetailPage() {
           </div>
         </div>
         {writable && (
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -215,6 +222,7 @@ export function ParticipantDetailPage() {
             <Button
               variant="danger"
               size="sm"
+              aria-label="Excluir participante"
               onClick={() => setShowDeleteModal(true)}
             >
               <Trash2 className="w-4 h-4" />
@@ -245,7 +253,7 @@ export function ParticipantDetailPage() {
               href={waParticipant}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold"
+              className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 py-2 rounded-lg bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-semibold transition-colors"
             >
               <MessageCircle className="w-3.5 h-3.5" />
               WhatsApp do Jovem
@@ -293,7 +301,7 @@ export function ParticipantDetailPage() {
       <Card>
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <div className="flex items-center gap-2.5">
-            <Shirt className="w-5 h-5 text-indigo-600" />
+            <Shirt className="w-5 h-5 text-primary-600" />
             <div>
               <h2 className="text-sm font-semibold text-text-primary">Confirmação de Camisa</h2>
               <p className="text-xs text-text-secondary">
@@ -332,7 +340,7 @@ export function ParticipantDetailPage() {
                   value={participant.shirt_size ?? ''}
                   disabled={savingShirt}
                   onChange={(e) => handleToggleShirt(true, (e.target.value || null) as ShirtSize | null)}
-                  className="px-2.5 py-1.5 rounded-lg border border-border text-xs font-semibold bg-white"
+                  className="min-h-[38px] px-2.5 py-1.5 rounded-lg border border-border text-xs font-semibold bg-white"
                 >
                   <option value="">Tamanho (opc.)</option>
                   {SHIRT_SIZES.map((sz) => (
@@ -360,7 +368,7 @@ export function ParticipantDetailPage() {
                 href={waGuardian}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-semibold"
+                className="inline-flex items-center gap-1.5 min-h-[40px] px-3.5 py-2 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-xs font-semibold transition-colors"
               >
                 <MessageCircle className="w-3.5 h-3.5" />
                 WhatsApp do Resp.
