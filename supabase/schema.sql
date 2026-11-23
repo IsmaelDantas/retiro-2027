@@ -11,6 +11,10 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 CREATE TABLE IF NOT EXISTS public.users (
   id UUID PRIMARY KEY REFERENCES auth.users(id) ON DELETE CASCADE,
   name TEXT NOT NULL,
+  username TEXT UNIQUE CHECK (
+    username IS NULL
+    OR username ~ '^[a-z0-9][a-z0-9._-]{1,30}[a-z0-9]$'
+  ),
   email TEXT NOT NULL,
   role TEXT NOT NULL DEFAULT 'viewer'
     CHECK (role IN ('admin', 'coordinator', 'viewer')),
