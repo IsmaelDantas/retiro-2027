@@ -54,7 +54,7 @@ export function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen bg-surface-secondary flex items-center justify-center px-4">
+    <main className="min-h-screen bg-surface-secondary flex items-center justify-center px-4">
       <div className="w-full max-w-sm">
         {/* Brand */}
         <div className="flex flex-col items-center mb-8">
@@ -112,6 +112,6 @@ export function LoginPage() {
           Acesso restrito a coordenadores autorizados.
         </p>
       </div>
-    </div>
+    </main>
   );
 }
