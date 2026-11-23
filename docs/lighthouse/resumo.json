@@ -1,0 +1,38 @@
+{
+  "antes": {
+    "label": "ANTES (Vercel v1.0.0)",
+    "scores": {
+      "performance": 74,
+      "accessibility": 82,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "failing_a11y": [
+      {
+        "id": "color-contrast",
+        "title": "Background and foreground colors do not have a sufficient contrast ratio.",
+        "score": 0
+      },
+      {
+        "id": "landmark-one-main",
+        "title": "Document does not have a main landmark.",
+        "score": 0
+      },
+      {
+        "id": "target-size",
+        "title": "Touch targets do not have sufficient size or spacing.",
+        "score": 0
+      }
+    ]
+  },
+  "depois": {
+    "label": "DEPOIS (Build AE IV)",
+    "scores": {
+      "performance": 95,
+      "accessibility": 100,
+      "best-practices": 100,
+      "seo": 100
+    },
+    "failing_a11y": []
+  }
+}

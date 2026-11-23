@@ -1,14 +1,23 @@
 /* ===== Type definitions for the Retiro 2027 database ===== */
 
 export type ParticipantStatus = 'pending' | 'confirmed' | 'cancelled';
+export type UserRole = 'admin' | 'coordinator' | 'viewer';
+export type AuditAction = 'INSERT' | 'UPDATE' | 'DELETE' | 'IMPORT';
 
 export interface Participant {
   id: string;
+  protocol: string | null;
+  cpf_hash: string | null;
   full_name: string;
   birth_date: string | null;
   phone: string | null;
   email: string | null;
   congregation: string | null;
+  locality: string | null;
+  is_resident: boolean | null;
+  registered_at: string | null;
+  shirt_purchased: boolean;
+  shirt_size: ShirtSize | null;
   notes: string | null;
   status: ParticipantStatus;
   created_at: string;
@@ -34,7 +43,18 @@ export interface UserProfile {
   id: string;
   name: string;
   email: string;
-  role: string;
+  role: UserRole | string;
+  created_at: string;
+}
+
+export interface AuditLog {
+  id: string;
+  actor_id: string | null;
+  actor_role: string | null;
+  action: AuditAction;
+  table_name: string;
+  record_id: string | null;
+  summary: Record<string, unknown>;
   created_at: string;
 }
 
@@ -50,6 +70,10 @@ export interface ParticipantFormData {
   phone: string;
   email: string;
   congregation: string;
+  locality?: string;
+  is_resident?: 'yes' | 'no' | '';
+  shirt_purchased?: boolean;
+  shirt_size?: ShirtSize | '';
   notes: string;
   status: ParticipantStatus;
   guardian_full_name: string;

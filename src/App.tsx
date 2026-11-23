@@ -13,6 +13,7 @@ import { ParticipantFormPage } from './pages/ParticipantFormPage';
 import { PaymentsPage } from './pages/PaymentsPage';
 import { ReportsPage } from './pages/ReportsPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { ImportPage } from './pages/ImportPage';
 
 export default function App() {
   return (
@@ -39,6 +40,7 @@ export default function App() {
                 <Route path="/participants/:id" element={<ParticipantDetailPage />} />
                 <Route path="/participants/:id/edit" element={<ParticipantFormPage />} />
                 <Route path="/payments" element={<PaymentsPage />} />
+                <Route path="/import" element={<ImportPage />} />
                 <Route path="/reports" element={<ReportsPage />} />
                 <Route path="/profile" element={<ProfilePage />} />
               </Route>

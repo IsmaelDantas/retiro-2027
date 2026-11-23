@@ -31,30 +31,26 @@
   --color-border: #e2e8f0;
   --color-border-strong: #cbd5e1;
 
-  /* Text Colors */
+  /* Text Colors (WCAG AA contrast >= 4.5:1 on light surfaces) */
   --color-text-primary: #0f172a;
   --color-text-secondary: #475569;
-  --color-text-tertiary: #94a3b8;
+  --color-text-tertiary: #64748b;
   --color-text-inverse: #ffffff;
 }
 
 /* ===== Base Styles ===== */
-* {
-  margin: 0;
-  padding: 0;
-  box-sizing: border-box;
-}
+@layer base {
+  html {
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
 
-html {
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-body {
-  font-family: var(--font-sans);
-  color: var(--color-text-primary);
-  background-color: var(--color-surface-secondary);
-  line-height: 1.6;
+  body {
+    font-family: var(--font-sans);
+    color: var(--color-text-primary);
+    background-color: var(--color-surface-secondary);
+    line-height: 1.6;
+  }
 }
 
 /* ===== Scrollbar ===== */
