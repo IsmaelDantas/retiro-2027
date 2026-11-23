@@ -10,10 +10,14 @@ import { CardSkeleton } from '../components/ui/Skeleton';
 import { EmptyState } from '../components/ui/EmptyState';
 import { ErrorState } from '../components/ui/ErrorState';
 import { calculateAge } from '../utils/date';
+import { useAuth } from '../contexts/AuthContext';
+import { canManageData } from '../utils/permissions';
 import type { ParticipantStatus, ParticipantWithGuardian } from '../types/database';
 
 export function ParticipantsPage() {
   const navigate = useNavigate();
+  const { profile } = useAuth();
+  const writable = canManageData(profile?.role);
 
   const [participants, setParticipants] = useState<ParticipantWithGuardian[]>([]);
   const [loading, setLoading] = useState(true);
@@ -68,12 +72,14 @@ export function ParticipantsPage() {
             {filteredParticipants.length} participante{filteredParticipants.length !== 1 ? 's' : ''} cadastrado{filteredParticipants.length !== 1 ? 's' : ''}
           </p>
         </div>
-        <Link to="/participants/new">
-          <button className="flex items-center gap-2 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 active:scale-95 transition-all">
-            <Plus className="w-5 h-5 stroke-[2.5]" />
-            <span className="hidden sm:inline">Nova Inscrição</span>
-          </button>
-        </Link>
+        {writable && (
+          <Link to="/participants/new">
+            <button className="flex items-center gap-2 px-4 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm shadow-md shadow-indigo-600/20 active:scale-95 transition-all">
+              <Plus className="w-5 h-5 stroke-[2.5]" />
+              <span className="hidden sm:inline">Nova Inscrição</span>
+            </button>
+          </Link>
+        )}
       </div>
 
       {/* Search and Status Filters */}
@@ -107,12 +113,14 @@ export function ParticipantsPage() {
             description="Comece cadastrando o primeiro participante do retiro."
             icon={<UserPlus className="w-8 h-8 text-slate-400" />}
             action={
-              <Link to="/participants/new">
-                <button className="flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-sm">
-                  <Plus className="w-5 h-5 stroke-[2.5]" />
-                  Nova Inscrição
-                </button>
-              </Link>
+              writable ? (
+                <Link to="/participants/new">
+                  <button className="flex items-center gap-2 px-5 py-3 rounded-xl bg-indigo-600 text-white font-bold text-sm shadow-sm">
+                    <Plus className="w-5 h-5 stroke-[2.5]" />
+                    Nova Inscrição
+                  </button>
+                </Link>
+              ) : undefined
             }
           />
         )

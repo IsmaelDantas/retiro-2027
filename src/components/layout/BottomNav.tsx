@@ -7,21 +7,27 @@ import {
   FileBarChart,
   User,
 } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { canManageData } from '../../utils/permissions';
 
 const navItems = [
-  { to: '/dashboard', label: 'Início', icon: LayoutDashboard },
-  { to: '/participants', label: 'Lista', icon: Users },
-  { to: '/participants/new', label: 'Inscrição', icon: UserPlus },
-  { to: '/payments', label: 'Blusas', icon: Wallet },
-  { to: '/reports', label: 'Relat.', icon: FileBarChart },
-  { to: '/profile', label: 'Perfil', icon: User },
+  { to: '/dashboard', label: 'Início', icon: LayoutDashboard, requiresWrite: false },
+  { to: '/participants', label: 'Lista', icon: Users, requiresWrite: false },
+  { to: '/participants/new', label: 'Inscrição', icon: UserPlus, requiresWrite: true },
+  { to: '/payments', label: 'Camisas', icon: Wallet, requiresWrite: false },
+  { to: '/reports', label: 'Relat.', icon: FileBarChart, requiresWrite: false },
+  { to: '/profile', label: 'Perfil', icon: User, requiresWrite: false },
 ];
 
 export function BottomNav() {
+  const { profile } = useAuth();
+  const writable = canManageData(profile?.role);
+  const visibleItems = navItems.filter((item) => !item.requiresWrite || writable);
+
   return (
     <nav className="lg:hidden fixed bottom-0 left-0 right-0 bg-white/95 backdrop-blur-lg border-t border-slate-200 z-40 shadow-lg">
       <div className="flex items-center justify-around h-16 max-w-md mx-auto px-1">
-        {navItems.map((item) => (
+        {visibleItems.map((item) => (
           <NavLink
             key={item.to}
             to={item.to}
