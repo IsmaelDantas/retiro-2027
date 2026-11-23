@@ -33,7 +33,7 @@ export function LoginPage() {
     setError('');
 
     if (!identifier.trim() || !password.trim()) {
-      setError('Informe seu nome de usuário e sua senha para entrar.');
+      setError('Informe seu usuário ou e-mail e sua senha para entrar.');
       return;
     }
 
@@ -44,7 +44,7 @@ export function LoginPage() {
     } catch (err) {
       const message =
         err instanceof Error && err.message.includes('Invalid login')
-          ? 'Usuário ou senha incorretos. Confira seus dados e tente novamente.'
+          ? 'Usuário, e-mail ou senha incorretos. Confira seus dados e tente novamente.'
           : 'Não foi possível conectar ao servidor. Verifique sua internet e tente novamente.';
       setError(message);
     } finally {
@@ -84,12 +84,13 @@ export function LoginPage() {
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <Input
-              label="Nome de usuário"
+              label="Usuário ou e-mail"
               name="username"
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="ex.: claudejan"
+              placeholder="ex.: claudejan ou nome@exemplo.com"
+              helperText="Aceita nome de usuário (ex.: claudejan) ou e-mail cadastrado."
               required
               autoComplete="username"
               autoCapitalize="none"
