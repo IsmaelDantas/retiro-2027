@@ -14,6 +14,7 @@ function getPageTitle(pathname: string): string {
   if (pathname.startsWith('/payments')) return 'Camisas';
   if (pathname.startsWith('/import')) return 'Importar CSV';
   if (pathname.startsWith('/reports')) return 'Relatórios';
+  if (pathname.startsWith('/users')) return 'Equipe e contas';
   if (pathname.startsWith('/profile')) return 'Perfil e auditoria';
   return 'Retiro 2027';
 }

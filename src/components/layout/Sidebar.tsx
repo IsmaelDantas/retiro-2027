@@ -7,17 +7,19 @@ import {
   FileBarChart,
   Upload,
   User,
+  UserCog,
   LogOut,
 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
-import { canManageData, getRoleLabel } from '../../utils/permissions';
+import { canManageData, canManageUsers, getRoleLabel } from '../../utils/permissions';
 
 const NAV_ITEMS = [
-  { to: '/dashboard', label: 'Painel', icon: LayoutDashboard, requiresWrite: false },
-  { to: '/participants', label: 'Inscritos', icon: Users, requiresWrite: false },
-  { to: '/payments', label: 'Camisas', icon: Shirt, requiresWrite: false },
-  { to: '/import', label: 'Importar CSV', icon: Upload, requiresWrite: true },
-  { to: '/reports', label: 'Relatórios', icon: FileBarChart, requiresWrite: false },
+  { to: '/dashboard', label: 'Painel', icon: LayoutDashboard, requiresWrite: false, requiresUsers: false },
+  { to: '/participants', label: 'Inscritos', icon: Users, requiresWrite: false, requiresUsers: false },
+  { to: '/payments', label: 'Camisas', icon: Shirt, requiresWrite: false, requiresUsers: false },
+  { to: '/import', label: 'Importar CSV', icon: Upload, requiresWrite: true, requiresUsers: false },
+  { to: '/reports', label: 'Relatórios', icon: FileBarChart, requiresWrite: false, requiresUsers: false },
+  { to: '/users', label: 'Equipe', icon: UserCog, requiresWrite: false, requiresUsers: true },
 ];
 
 /** Navegação lateral fixa em desktop (lg+); oculta no celular onde opera a barra inferior 4+1 */
@@ -25,7 +27,10 @@ export function Sidebar() {
   const { signOut, profile, user } = useAuth();
   const displayName = profile?.name || user?.email?.split('@')[0] || 'Coordenador';
   const writable = canManageData(profile?.role);
-  const visibleItems = NAV_ITEMS.filter((item) => !item.requiresWrite || writable);
+  const manageUsers = canManageUsers(profile?.role);
+  const visibleItems = NAV_ITEMS.filter(
+    (item) => (!item.requiresWrite || writable) && (!item.requiresUsers || manageUsers)
+  );
 
   return (
     <aside

@@ -42,6 +42,7 @@ export interface ParticipantGuardian {
 export interface UserProfile {
   id: string;
   name: string;
+  username?: string | null;
   email: string;
   role: UserRole | string;
   created_at: string;

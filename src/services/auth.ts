@@ -37,3 +37,8 @@ export async function getUserProfile(userId: string): Promise<UserProfile | null
 
   return data;
 }
+
+export async function updateOwnPassword(newPassword: string) {
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) throw error;
+}
