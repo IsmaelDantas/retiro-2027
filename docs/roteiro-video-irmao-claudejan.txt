@@ -1,0 +1,190 @@
+================================================================================
+ROTEIRO DE VÍDEO 1 — APRESENTAÇÃO PARA O IRMÃO CLAUDEJAN
+Público: Liderança principal da coordenação de jovens (linguagem simples, sem
+termos técnicos, foco no uso prático no computador e no celular)
+Duração estimada: 4 a 6 minutos
+================================================================================
+
+ANTES DE COMEÇAR A GRAVAR (PREPARAÇÃO):
+- Use o endereço de DEMONSTRAÇÃO (https://retiro-2027-seven.vercel.app) para
+  mostrar tudo com dados de teste, sem risco de apagar ou expor inscritos reais.
+- Na hora de digitar a senha na tela, lembre de NÃO falar a senha definitiva em
+  voz alta nem deixar senhas reais visíveis caso vá compartilhar o vídeo.
+- Fale com calma, mostrando exatamente onde o dedo ou o mouse deve clicar.
+
+--------------------------------------------------------------------------------
+CENA 1 — ABERTURA: O QUE É O APLICATIVO (0:00 – 0:45)
+--------------------------------------------------------------------------------
+[TELA: Página inicial de Login aberta no navegador do computador]
+
+FALA SUGERIDA:
+"A paz do Senhor, irmão Claudejan! Gravei esse vídeo rapidinho para lhe mostrar
+o aplicativo que preparamos para a coordenação do Retiro 2027.
+A ideia dele é ser bem simples: o site oficial da igreja continua sendo o lugar
+onde os jovens fazem a inscrição normal. Já esse painel aqui é a nossa ferramenta
+interna da coordenação para acompanhar quem se inscreveu, ver quem é menor de
+idade, falar com os jovens e pais no WhatsApp com um clique e controlar quem
+comprou camisa — tudo funcionando tanto no computador quanto no celular."
+
+--------------------------------------------------------------------------------
+CENA 2 — COMO ENTRAR PELO COMPUTADOR (0:45 – 1:30)
+--------------------------------------------------------------------------------
+[AÇÃO NA TELA: Mostrar a barra de endereço lá em cima e a estrelinha de favoritos]
+
+FALA SUGERIDA:
+"Para acessar pelo computador, é só abrir o navegador (Chrome ou Edge) e
+entrar no link oficial que vou lhe mandar no WhatsApp. Uma dica boa é clicar
+nessa estrelinha aqui em cima para salvar nos Favoritos, assim não precisa
+digitar o endereço toda vez."
+
+[AÇÃO NA TELA: Clicar no campo "Usuário ou e-mail", digitar "claudejan",
+depois clicar em "Senha" e apontar o botão "Mostrar"]
+
+FALA SUGERIDA:
+"Aqui na tela de entrada, não precisa ficar decorando e-mail comprido. Basta
+colocar o seu nome de usuário — no seu caso, claudejan — e a sua senha.
+Se quiser conferir se digitou a senha certinha, pode clicar aqui em 'Mostrar'
+antes de apertar 'Entrar no painel'."
+
+[AÇÃO NA TELA: Clicar no botão azul "Entrar no painel"]
+[TROCA DE TELA -> Painel inicial (Dashboard)]
+
+--------------------------------------------------------------------------------
+CENA 3 — TOUR SIMPLES NO PAINEL COM EXEMPLOS PRÁTICOS (1:30 – 3:15)
+--------------------------------------------------------------------------------
+[TELA: Tela "Painel" (Dashboard)]
+
+FALA SUGERIDA:
+"Assim que você entra, já cai aqui no Painel. Ele resume tudo em números grandes:
+quantos inscritos ativos temos no total, quantos já estão confirmados, quantos
+estão pendentes, quantos vão ficar alojados internos e quantos são menores de
+18 anos na data do retiro."
+
+[AÇÃO NA TELA: Apontar o quadro de alerta de menores sem responsável e as
+barras por congregação]
+
+FALA SUGERIDA:
+"Veja esse aviso importante aqui: se tiver algum menor de 18 anos sem o nome ou
+WhatsApp do responsável cadastrado, o sistema avisa logo aqui em destaque para a
+coordenação ir atrás antes do retiro.
+E logo abaixo você vê quantos jovens vêm de cada congregação. Por exemplo, se eu
+quiser ver só os jovens de uma congregação específica, basta clicar no nome
+dela aqui que ele já abre a lista filtrada."
+
+[TROCA DE TELA -> Clicar em "Inscritos" no menu lateral esquerdo]
+
+FALA SUGERIDA:
+"Aqui na aba 'Inscritos' fica a lista completa. Vamos dar um exemplo: quero
+procurar uma pessoa específica ou filtrar só quem vai ficar interno."
+
+[AÇÃO NA TELA: Digitar um nome na barra de pesquisa, depois clicar em "Filtros"
+e abrir/fechar os filtros por congregação ou idade]
+
+FALA SUGERIDA:
+"Posso digitar o nome aqui em cima ou abrir o botão 'Filtros' para separar por
+congregação, menores de idade ou alojamento. E olha o mais prático: clicando no
+nome da pessoa..."
+
+[TROCA DE TELA -> Ficha do participante]
+
+FALA SUGERIDA:
+"...eu abro a ficha completa dela. Se precisar falar com o jovem ou com o pai e
+a mãe dele, não precisa salvar contato nem digitar número: tem o botão verde
+'WhatsApp do Jovem' e o botão azul 'WhatsApp do Resp.' que já abre a conversa
+direto no WhatsApp."
+
+[TROCA DE TELA -> Clicar em "Camisas" no menu lateral esquerdo]
+
+FALA SUGERIDA:
+"Agora vou lhe mostrar a aba 'Camisas'. Como combinamos de deixar bem simples,
+aqui não mexe com preço nem pagamento — serve só para o coordenador marcar
+'Sim' ou 'Não' se a pessoa adquiriu a camisa e qual o tamanho dela."
+
+[AÇÃO NA TELA: Em um inscrito de exemplo, clicar em "Sim" e escolher um tamanho
+como "M", mostrando que salva na hora]
+
+FALA SUGERIDA:
+"Com um clique no 'Sim' e escolhendo o tamanho, por exemplo 'M', ele já soma lá
+em cima quantas camisas de cada tamanho vamos precisar. Bem direto."
+
+--------------------------------------------------------------------------------
+CENA 4 — COMO ACESSAR E INSTALAR NO CELULAR (3:15 – 4:25)
+--------------------------------------------------------------------------------
+[TROCA DE TELA -> Passar para a gravação / espelhamento da tela do CELULAR]
+
+FALA SUGERIDA:
+"E no celular, que é onde a maioria dos coordenadores vai usar no dia a dia, é
+ainda mais prático porque ele funciona como um aplicativo de verdade, com ícone
+na tela do celular igual ao WhatsApp."
+
+[AÇÃO NA TELA (CELULAR): Abrir o link no navegador do celular e mostrar a tela
+principal ajustada para celular]
+
+FALA SUGERIDA:
+"Quando o senhor abrir o link pelo celular e fizer o login, vai aparecer esse
+botão no topo chamado 'Instalar aplicativo' — ou aqui no menu 'Mais' embaixo.
+- No celular Android (Samsung, Motorola, Xiaomi): é só tocar em 'Instalar
+  aplicativo' e confirmar 'Instalar'.
+- No iPhone (iOS): basta tocar naquele quadradinho com uma seta para cima lá em
+  baixo no Safari e escolher 'Adicionar à Tela de Início'."
+
+[AÇÃO NA TELA (CELULAR): Mostrar brevemente a tela inicial do celular com o
+ícone "Retiro 2027" ou mostrar a barra inferior do celular com os 5 botões]
+
+FALA SUGERIDA:
+"Pronto, ele vira um aplicativo na tela inicial! E dentro dele no celular, toda
+a navegação fica aqui embaixo bem fácil de alcançar com o polegar: Painel,
+Inscritos, Camisas, Importar e esse botão 'Mais' no canto direito com o restante
+das opções."
+
+--------------------------------------------------------------------------------
+CENA 5 — CONTAS DA EQUIPE: COMO CRIAR COORDENADORES E SUPERVISORES (4:25 – 5:35)
+--------------------------------------------------------------------------------
+[TROCA DE TELA -> Tocar em "Mais" -> "Equipe e Contas" (ou clicar em "Equipe" no
+computador)]
+
+FALA SUGERIDA:
+"Agora uma parte muito importante para a liderança: o seu login é de
+ADMINISTRADOR, que é o nível máximo do aplicativo. Aqui na tela 'Equipe e Contas',
+existem 3 tipos de conta para manter tudo seguro:
+1. Administrador (o senhor): pode fazer tudo e é o único que consegue apagar ou
+   rebaixar outro Coordenador.
+2. Coordenador: pode editar inscritos, confirmar camisas, puxar a lista do site
+   da igreja e também pode criar contas para outros Coordenadores e Supervisores.
+   Mas atenção: um Coordenador NÃO consegue excluir outro Coordenador.
+3. Supervisor: é uma conta apenas para acompanhar e visualizar os números e
+   listas. Quem for Supervisor NÃO vê botões de editar, apagar nem adicionar
+   nada — então não tem risco de ninguém alterar nada sem querer."
+
+[AÇÃO NA TELA: Clicar em "+ Nova conta", preencher um nome fictício como
+"Maria Silva", mostrar que o nome de usuário já preenche sozinho ("maria.silva"),
+escolher "Supervisor(a)" ou "Coordenador(a)", clicar em "Gerar senha" e
+"Criar conta"]
+
+FALA SUGERIDA:
+"Olha como é simples criar uma conta para alguém da equipe: clica em 'Nova
+conta', coloca o nome da pessoa, o sistema já sugere o usuário automático, o
+senhor escolhe se ela vai ser Coordenador ou Supervisor, gera uma senha pronta
+e cria. Na hora aparece esse botão 'Copiar acesso': é só clicar e colar direto
+no WhatsApp da pessoa com o link, o usuário e a senha."
+
+[TROCA DE TELA -> Ir em "Perfil e auditoria" -> mostrar a caixa "Alterar minha
+senha"]
+
+FALA SUGERIDA:
+"E cada pessoa, quando entrar com a senha inicial que recebeu, pode vir aqui em
+'Perfil' e trocar para uma senha pessoal só dela."
+
+--------------------------------------------------------------------------------
+CENA 6 — ENCERRAMENTO (5:35 – 6:00)
+--------------------------------------------------------------------------------
+[TELA: Voltar rapidamente para o Painel inicial]
+
+FALA SUGERIDA:
+"E sempre que entrarem novas inscrições no site oficial da igreja, a secretaria
+ou qualquer coordenador consegue importar a lista atualizada pela aba
+'Importar CSV' em segundos, sem risco de duplicar ninguém.
+Qualquer dúvida na hora de usar ou de criar as primeiras contas da equipe, é só
+me chamar. Deus abençoe e vamos juntos na preparação do Retiro 2027!"
+
+================================================================================

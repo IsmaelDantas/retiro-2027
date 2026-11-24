@@ -1,0 +1,168 @@
+================================================================================
+ROTEIRO DE VÍDEO 2 — APRESENTAÇÃO TÉCNICA PARA O IRMÃO LUIZ
+Público: Perfil técnico / desenvolvedor ou administrador de infraestrutura da igreja
+Foco: Arquitetura do sistema, segurança/LGPD, ambientes e opções de integração
+com o site PHP/MySQL oficial da igreja
+Duração estimada: 5 a 7 minutos
+================================================================================
+
+ANTES DE COMEÇAR A GRAVAR (PREPARAÇÃO):
+- Deixe abertos em abas separadas:
+  1. O ambiente de Demo (https://retiro-2027-seven.vercel.app) autenticado;
+  2. O repositório no VS Code / navegador com os arquivos:
+     - docs/arquitetura.md
+     - docs/mapeamento-igreja.md
+     - supabase/migrations/202611230001_fase1_roles_rls_audit_lgpd.sql
+     - supabase/migrations/202611240001_fase8_team_accounts.sql
+     - supabase/functions/cpf-hash/index.ts
+     - supabase/functions/manage-users/index.ts
+  3. Um terminal opcional para mostrar `npm run test` / `git log`.
+- Nunca exiba tokens (sbp_...), senhas reais ou dados pessoais reais de
+  participantes no vídeo.
+
+--------------------------------------------------------------------------------
+CENA 1 — ABERTURA E VISÃO GERAL DE AMBIENTES (0:00 – 0:50)
+--------------------------------------------------------------------------------
+[TELA: Navegador mostrando a Demo em produção na Vercel e depois alternando para
+o repositório Git / Vercel Projects]
+
+FALA SUGERIDA:
+"Fala irmão Luiz, tudo certo? Gravei esse vídeo técnico para lhe apresentar em
+detalhes o que estruturamos para o painel de gestão do Retiro 2027, como ficou a
+arquitetura e principalmente como ele conversa com o módulo PHP/MySQL que já roda
+no site oficial da igreja.
+
+Primeiro, separamos tudo em dois ambientes completamente isolados:
+- Temos a branch 'develop' publicada em Demo (retiro-2027-seven.vercel.app),
+  ligada a um projeto Supabase exclusivo de testes;
+- E a branch 'main' (atualmente na release v1.2.2) publicada em Produção
+  (retiro-2027-producao.vercel.app), apontando para outro projeto Supabase
+  dedicado na região de São Paulo (sa-east-1), tudo rodando dentro das cotas
+  gratuitas."
+
+--------------------------------------------------------------------------------
+CENA 2 — ARQUITETURA FRONTEND, PERFORMANCE E PWA (0:50 – 1:55)
+--------------------------------------------------------------------------------
+[TROCA DE TELA -> Abrir docs/arquitetura.md (ou painel rodando no navegador com
+DevTools / rede aberto)]
+
+FALA SUGERIDA:
+"No frontend, é uma SPA em React + TypeScript + Tailwind v4 compilada com Vite e
+vite-plugin-pwa. Como a maioria dos coordenadores vai usar direto pelo celular
+(inclusive instalado como PWA), fizemos uma otimização pesada de navegação e
+bundle:
+- Code splitting por rota com React.lazy() e separação de chunks manuais para
+  React, Supabase e Lucide Icons — o chunk inicial caiu para ~21 kB (~7 kB
+  gzipped);
+- Cache compartilhado em memória via Context API (ParticipantsDataContext),
+  então alternar entre Painel, Inscritos, Camisas e Relatórios é instantâneo e
+  com atualização otimista;
+- No Lighthouse local da build otimizada, fechou com 97 de Performance no
+  Mobile, 100 no Desktop e 100 em Accessibility, Best Practices e SEO."
+
+--------------------------------------------------------------------------------
+CENA 3 — BACKEND SUPABASE, LGPD, RLS E HIERARQUIA DE CONTAS (1:55 – 3:35)
+--------------------------------------------------------------------------------
+[TROCA DE TELA -> Mostrar supabase/functions/cpf-hash/index.ts e depois
+supabase/migrations/202611230001_fase1_roles_rls_audit_lgpd.sql]
+
+FALA SUGERIDA:
+"No backend usamos PostgreSQL, Auth e Edge Functions no Supabase com foco forte em
+LGPD e controle de acesso real no banco:
+
+1. Proteção de CPF (Minimização LGPD):
+   O painel NÃO armazena CPF em texto claro nem os textos jurídicos de aceite.
+   A Edge Function 'cpf-hash' recebe o CPF em memória, aplica HMAC-SHA256 com
+   um pepper secreto (CPF_HMAC_PEPPER) guardado apenas nas variáveis do servidor
+   Supabase e devolve apenas o hash determinístico (cpf_hash) para evitar
+   inscrições duplicadas. As tabelas originais de termos, IPs e PDFs
+   (retiro_termos_aceites) continuam exclusivas no servidor oficial da igreja.
+
+2. RLS Restritivo por Papel + Auditoria:
+   Em todas as tabelas aplicamos RLS consultando private.current_user_role()
+   (função SECURITY DEFINER fora do schema exposto), além de triggers de
+   anti-escalação (guard_user_role_change) e uma tabela imutável audit_logs
+   registrando quem alterou o quê, sem salvar PII sensível no resumo JSONB."
+
+[TROCA DE TELA -> Mostrar supabase/functions/manage-users/index.ts e a tela
+/users (Equipe e Contas) na Demo]
+
+FALA SUGERIDA:
+"3. Gestão de Equipe e Login por Usuário:
+   Para facilitar para os irmãos, o login aceita tanto usuário simples (mapeado
+   internamente para um domínio virtual via auth.admin.createUser com confirmação
+   automática, sem precisar de e-mail real) quanto e-mail legado.
+   Toda criação/edição/exclusão passa pela Edge Function 'manage-users', que
+   valida o JWT e aplica a hierarquia no servidor usando service_role:
+   - 'admin' (como o irmão Claudejan): acesso total e único que pode excluir ou
+     rebaixar outros coordenadores;
+   - 'coordinator': gerencia dados e cria novos coordenadores ou supervisores,
+     mas é bloqueado com HTTP 403 se tentar criar admin ou excluir outro
+     coordenador;
+   - 'viewer' (exibido na UI como Supervisor): somente leitura na interface e
+     bloqueado em nível de RLS no Postgres."
+
+--------------------------------------------------------------------------------
+CENA 4 — CONEXÃO COM O SITE PHP/MYSQL DA IGREJA (3:35 – 5:45)
+--------------------------------------------------------------------------------
+[TROCA DE TELA -> Abrir docs/mapeamento-igreja.md e alternar para a tela
+/import (Importar CSV) na Demo]
+
+FALA SUGERIDA:
+"Agora sobre o ponto principal da integração com o site oficial da igreja em PHP e
+MySQL (index.php, inscritos.php e gerenciar.php). Nós projetamos em duas etapas
+complementares justamente porque eu não tenho acesso direto ao deploy do servidor
+da igreja:
+
+ETAPA 1 — O QUE JÁ FUNCIONA HOJE (ZERO ALTERAÇÃO NO PHP):
+Analisamos a estrutura exata de exportação do 'inscritos.php?exportar=csv' —
+UTF-8 com BOM, separador ponto-e-vírgula, 14 colunas na ordem exata, inclusive
+tratando aquele apóstrofo anti-fórmula que o PHP adiciona e calculando a
+menoridade na data-base de 06/02/2027.
+Aqui na aba 'Importar CSV' do PWA, quando você ou a secretaria sobe esse CSV,
+o sistema envia os CPFs para a Edge Function gerar o cpf_hash e faz um upsert
+idempotente usando 'protocol' e 'cpf_hash'. Se importar o mesmo arquivo 10 vezes,
+ele não duplica nenhum jovem — só insere os novos e atualiza quem mudou ou foi
+cancelado no site."
+
+[TROCA DE TELA -> Mostrar o diagrama Mermaid em docs/arquitetura.md (ou um bloco
+esquemático do fluxo Webhook PHP -> Supabase)]
+
+FALA SUGERIDA:
+"ETAPA 2 — COMO PODEMOS AUTOMATIZAR EM TEMPO REAL SE VOCÊ CONCORDAR:
+Se quisermos que o jovem preencha o 'index.php' no site da igreja e já apareça
+no segundo seguinte dentro do PWA sem ninguém precisar exportar CSV:
+- Do nosso lado no Supabase, criamos uma Edge Function chamada 'sync-inscricao'
+  recebendo um POST JSON com assinatura HMAC-SHA256 (via um WEBHOOK_SECRET
+  compartilhado — sem nunca colocar chave service_role do Supabase no PHP).
+- Do lado do servidor PHP da igreja, logo depois do '$conn->commit()' no
+  'index.php' e no 'gerenciar.php', entra um bloco simples de ~25 linhas usando
+  'php-curl' (ou um 'include_once' de um arquivo isolado) enviando os dados da
+  inscrição para essa Edge Function com timeout curto de 2 a 3 segundos.
+- Detalhe importante de arquitetura: esse disparo é não-bloqueante /
+  fail-silent. Ou seja, se a internet oscilar ou a Edge Function demorar mais
+  de 2 segundos, o PHP apenas ignora o retorno e conclui a inscrição do jovem
+  normalmente no MySQL da igreja — zero risco de derrubar ou travar o formulário
+  oficial. E se algum registro pontual falhar no webhook, a importação CSV pelo
+  '/import' continua funcionando como rede de segurança idempotente.
+- Além disso, dá para ativar Supabase Realtime na tabela participants para que o
+  card apareça ao vivo na tela do coordenador sem nem precisar atualizar a página."
+
+--------------------------------------------------------------------------------
+CENA 5 — TESTES, QUALIDADE E ENCERRAMENTO (5:45 – 6:30)
+--------------------------------------------------------------------------------
+[TROCA DE TELA -> Terminal executando 'npm run test' e 'npm run build', ou
+mostrando docs/testes.md]
+
+FALA SUGERIDA:
+"Para fechar, toda a lógica crítica de parser CSV, validação/hash de CPF,
+idempotência, cálculo de idade no retiro e regras de hierarquia está coberta por
+testes automatizados no Vitest, lint zerado no oxlint e os Security Advisors do
+Supabase em Produção estão 100% limpos.
+
+Depois que você assistir e avaliar, se achar tranquilo colocar aquele pequeno
+disparo de webhook no index.php e gerenciar.php (ou preferir por enquanto seguir
+apenas com a exportação CSV), a gente já deixa a Edge Function e o trecho PHP
+prontinhos para você só revisar e subir quando puder. Valeu!"
+
+================================================================================
