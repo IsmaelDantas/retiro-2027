@@ -89,8 +89,8 @@ export function LoginPage() {
               type="text"
               value={identifier}
               onChange={(e) => setIdentifier(e.target.value)}
-              placeholder="ex.: claudejan ou nome@exemplo.com"
-              helperText="Aceita nome de usuário (ex.: claudejan) ou e-mail cadastrado."
+              placeholder="ex.: seu.usuario ou nome@exemplo.com"
+              helperText="Aceita nome de usuário (ex.: seu.usuario) ou e-mail cadastrado."
               required
               autoComplete="username"
               autoCapitalize="none"
