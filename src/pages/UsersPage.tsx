@@ -141,7 +141,7 @@ export function UsersPage() {
       return;
     }
     if (!isValidUsername(cleanUsername)) {
-      showToast('Usuário inválido. Use 3 a 32 letras/números (ex.: claudejan).', 'error');
+      showToast('Usuário inválido. Use 3 a 32 letras/números (ex.: maria.silva).', 'error');
       return;
     }
     if (newPassword.length < 6) {
@@ -531,7 +531,7 @@ export function UsersPage() {
             label="Nome completo"
             value={newName}
             onChange={(e) => handleNameChange(e.target.value)}
-            placeholder="ex.: Irmão Claudejan"
+            placeholder="ex.: Maria Silva"
             required
           />
 
@@ -543,7 +543,7 @@ export function UsersPage() {
                 setUsernameTouched(true);
                 setNewUsername(e.target.value.toLowerCase().replace(/\s+/g, '.'));
               }}
-              placeholder="ex.: claudejan"
+              placeholder="ex.: maria.silva"
               autoCapitalize="none"
               spellCheck={false}
               required
